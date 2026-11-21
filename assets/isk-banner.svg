@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" role="img" aria-labelledby="title desc">
+  <title id="title">ISK — Agents for Agents</title>
+  <desc id="desc">An angular mint semantic graph beside the ISK wordmark on a deep navy background.</desc>
+  <rect x="1" y="1" width="958" height="278" rx="28" fill="#0B1526" stroke="#4C6585" stroke-width="2"/>
+  <path d="M630 228h86l50-52h85l53-52V56M716 228l-49-51v-47l54-54h63l48-48h72M766 176v-48l47-52h91M851 176l53 52" fill="none" stroke="#26405D" stroke-width="2"/>
+  <path d="M721 76h63l29 0 38 100" fill="none" stroke="#3A5B79" stroke-width="2"/>
+  <g fill="#0B1526" stroke="#4C6585" stroke-width="2">
+    <rect x="662" y="125" width="10" height="10" rx="1"/>
+    <rect x="716" y="71" width="10" height="10" rx="1"/>
+    <rect x="761" y="123" width="10" height="10" rx="1"/>
+    <rect x="899" y="119" width="10" height="10" rx="1"/>
+    <rect x="899" y="223" width="10" height="10" rx="1"/>
+  </g>
+  <g fill="#65F1C8">
+    <rect x="808" y="71" width="10" height="10" rx="1"/>
+    <rect x="846" y="171" width="10" height="10" rx="1"/>
+    <rect x="711" y="223" width="10" height="10" rx="1"/>
+  </g>
+  <g transform="translate(64 36) scale(1.45)">
+    <path d="M34 30v68m0-34h31l29-34M65 64l29 34" fill="none" stroke="#8FA7C6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M34 30v68m31-34 29-34" fill="none" stroke="#65F1C8" stroke-width="8" stroke-linecap="round"/>
+    <g fill="#0B1526" stroke="#65F1C8" stroke-width="5">
+      <rect x="26" y="22" width="16" height="16" rx="2"/>
+      <rect x="26" y="90" width="16" height="16" rx="2"/>
+      <rect x="86" y="22" width="16" height="16" rx="2"/>
+    </g>
+    <rect x="86" y="90" width="16" height="16" rx="2" fill="#0B1526" stroke="#8FA7C6" stroke-width="5"/>
+    <rect x="56" y="55" width="18" height="18" rx="2" fill="#F1F7FF"/>
+    <path d="M123 23v82" stroke="#334B68" stroke-width="2"/>
+    <path d="M148 31h40v10h-14v46h14v10h-40V87h14V41h-14zM216 31h37v10h-34l-5 5v8l5 5h23l13 13v12l-13 13h-39V87h35l5-5v-6l-5-6h-23l-13-13V44zM274 31h12v29l27-29h15l-30 33 31 33h-16l-27-29v29h-12z" fill="#F1F7FF"/>
+  </g>
+  <path d="M103 196h436" stroke="#334B68" stroke-width="2"/>
+  <text x="103" y="243" fill="#B9CDE8" font-family="system-ui, sans-serif" font-weight="600" font-size="35">Agents for Agents</text>
+</svg>

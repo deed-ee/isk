@@ -1,68 +1,129 @@
 # ISK — Agents for Agents
 
-## Vision
+![ISK wordmark with an angular mint semantic graph on a navy background](assets/isk-banner.svg)
 
-**Build a programming language for agents, not merely with agents.** If
-programming languages were invented for autonomous coding agents today, what
-would we design differently? ISK is a language and development model built
-around how agents understand, construct, transform, and verify software.
+**An experimental, semantic-first programming language for autonomous coding agents.**
 
-Human-readable source is one view of a program. Agents should be able to ask
-the compiler what a symbol means, what depends on it, and which tests a change
-could affect. They should be able to validate a structured change before it
-touches the source, without reconstructing facts the compiler already knows.
+[Quick start](#quick-start) · [Architecture](#compiler-architecture) · [Roadmap](ROADMAP.md) · [Benchmarks](benchmarks/README.md)
 
-Success means measurably less total effort to deliver correct, verified,
-maintainable software without sacrificing safety, determinism, or native
-performance. The current compiler translates a small provisional subset to
-Rust. That is a bootstrap, not the language blueprint. See the
-[architecture](docs/architecture.md), [agent instructions](AGENTS.md), and
-[roadmap](ROADMAP.md).
+## The idea
 
-## Try it
+**Build a programming language for agents, not merely with agents.** ISK is
+designed around how agents understand, change, and verify software. Source code
+is one human-readable view of a program. Rather than infer meaning from text
+alone, agents should be able to ask the compiler what a symbol means, where it
+is used, and whether a proposed change is valid.
 
-Install stable Rust, then run:
+- **Semantics first.** Resolve symbols and references once so inspection and
+  editing use the same facts as the compiler.
+- **Verified changes.** Prefer edits the compiler can check before they touch
+  the original source.
+- **Measure the whole task.** Optimize the effort needed to deliver correct,
+  maintainable software, without sacrificing safety, determinism, or native
+  performance.
+
+**Status: experimental bootstrap.** ISK has a working single-file compiler,
+function inspection, and validated rename previews. The current syntax is
+provisional. Rust is the bootstrap backend, not the language blueprint.
+
+## Quick start
+
+With stable Rust installed, run these commands from the repository root:
 
 ```sh
 cargo run -- check examples/factorial.isk
-cargo run -- build examples/factorial.isk
 cargo run -- run examples/factorial.isk
 ```
 
-`check` validates the source without invoking `rustc` or writing build
-artifacts. `build` writes generated Rust and the executable to `.isk-build/`
-and prints the executable's path. `run` builds and executes the program, which
-prints `3628800` in this example.
+[The example](examples/factorial.isk) prints `3628800`:
 
-The MVP supports `u64`, `bool`, functions, local `let`/`mut` bindings, arithmetic,
-comparisons, `if` expressions, calls, and `print` for integers and booleans.
-Integer overflow and division by zero panic explicitly rather than inheriting
-Rust profile-dependent overflow behavior. See
-[`docs/adr/0001-mvp-language-subset.md`](docs/adr/0001-mvp-language-subset.md)
-for current decisions and limitations.
+```text
+fn factorial(n: u64) -> u64 {
+    if n <= 1 {
+        1
+    } else {
+        n * factorial(n - 1)
+    }
+}
 
-## Inspect or rename a function
+fn main() {
+    print(factorial(10))
+}
+```
+
+To query the function or preview a rename without modifying the file:
 
 ```sh
 cargo run -- inspect examples/factorial.isk factorial
 cargo run -- rename examples/factorial.isk factorial fact
 ```
 
-`inspect` checks the file, then emits tab-separated records for the requested
-function and its resolved calls, with no function body or unrelated symbols:
-`function <id> <start> <end> <signature>` followed by zero or more
-`call <start> <end>` records in source order. Start and exclusive end are
-zero-based UTF-8 byte offsets of the name in the input. The ID is a zero-based
-declaration index, not a persistent project-wide identifier. Calls to the
-builtin `print` do not count as references to a declared function.
+See the [CLI reference](docs/cli.md) for output formats, build artifacts, and
+the supported language subset.
 
-`rename` validates the source, changes the function declaration and its resolved
-calls, and validates the result before printing it. It never edits the input
-file. To save the output, redirect it to a **different** path. The entry point
-`main`, the builtin `print`, and names already used by another function are
-not valid rename targets.
+## Compiler architecture
 
-## Development
+**Today.** The compiler parses and checks one source file. `check` does not
+invoke `rustc`; `build` and `run` use it to produce a native executable.
+
+```mermaid
+flowchart TD
+    Source["ISK source"] --> Lexer["Lexer"]
+    Lexer --> Parser["Parser"]
+    Parser --> Ast["AST"]
+    Ast --> Analysis["Semantic analysis"]
+    Analysis --> Codegen["Rust code generation"]
+    Codegen --> Rustc["Rust compiler"]
+    Rustc --> Binary["Native executable"]
+```
+
+**Proposed.** A typed program representation would let agents work through
+the same semantic API, regardless of client. Validation remains part of the
+compiler, not a rule each agent tool must reimplement.
+
+```mermaid
+flowchart TD
+    Agent["AI agent"] --> Api["Semantic API"]
+    Api --> Typed["Typed program representation"]
+    Typed --> Validation["Validation"]
+    Validation --> Compiler["Compiler"]
+    Compiler --> Binary["Native executable"]
+```
+
+## Agent-native workflow
+
+**Target workflow.** The bootstrap already supports inspecting a function,
+previewing a validated rename, and checking and running the result. Broader
+dependency analysis and automatic selection of affected tests are planned.
+
+```mermaid
+flowchart TD
+    Request["Agent request"] --> Inspect["Semantic inspection"]
+    Inspect --> Impact["Impact analysis"]
+    Impact --> Modify["Validated modification"]
+    Modify --> Verify["Verification"]
+    Verify --> Result["Result and impact report"]
+```
+
+The [engineering architecture](docs/architecture.md) explains the boundary
+between the working compiler and the proposed semantic model.
+
+## Roadmap and evidence
+
+The [roadmap](ROADMAP.md) takes ISK from a stable bootstrap and reproducible
+numerical pilot to a complete semantic editing workflow evaluated against
+plain-text editing.
+
+The [benchmark protocol](benchmarks/README.md) separates program measurements
+from agent outcomes such as correctness, time, context, and correction effort.
+The current GCD and coprimality pilot has reference runs for ISK, Rust, and
+Python. It does not yet establish an agent-productivity advantage.
+
+## Contributing
+
+Start with [AGENTS.md](AGENTS.md) for contributor guidance and the
+[design evaluation](docs/research/design-evaluation.md) for open questions.
+Run the following lightweight checks before submitting a change:
 
 ```sh
 cargo fmt --check
@@ -71,17 +132,9 @@ cargo test --workspace
 python3 benchmarks/pilot.py --task all --trials 1
 ```
 
-The workspace is currently a single package with internal compiler stages.
-The numerical benchmark pilot can run the checked-in ISK, Rust, and Python
-reference implementations with Python 3 and the same Rust toolchain:
-
-```sh
-python3 benchmarks/pilot.py --task all --trials 3 > pilot-results.jsonl
-```
-
-This measures the reference programs, not agent authoring. See the
-[benchmark protocol](benchmarks/README.md) for the tasks, results format,
-and measurement limits, and the [roadmap](ROADMAP.md) for planned work.
+Use `--trials 3` for repeated reference measurements. The
+[wordmark](assets/isk-logo.svg) and [square icon](assets/isk-icon.svg) are also
+available as standalone SVGs.
 
 ## License
 
