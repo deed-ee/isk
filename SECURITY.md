@@ -5,13 +5,10 @@ compiler. There is no supported release line or promised response timeline.
 
 ## Report a vulnerability
 
-GitHub private vulnerability reporting is not currently enabled, and no
-alternate private reporting contact is published. Do not open a public issue
-containing vulnerability details. Maintainers should enable private reporting
-under **Settings > Code security** and update this policy once it is available.
-After that, use **Security > Report a vulnerability** and include the affected
-commit, platform, impact, and enough information to investigate privately.
-Do not include credentials or unrelated private data.
+Use GitHub's [private vulnerability reporting form](https://github.com/deed-ee/isk/security/advisories/new).
+Include the affected commit, platform, impact, and enough information to
+investigate privately. Do not open a public issue containing vulnerability
+details or include credentials or unrelated private data.
 
 ## Current boundaries
 

@@ -13,9 +13,10 @@ someone else's private information without permission are unacceptable.
 
 ## Reporting and enforcement
 
-A designated private reporting contact has not been published. Maintainers
-should establish and publish one before asking people to submit reports.
-Do not post sensitive conduct reports in public issues or pull requests.
+The designated contact for conduct reports is [@deed-ee](https://github.com/deed-ee).
+Please use a private contact method if one is available. A dedicated private
+reporting channel has not been published. Do not post sensitive conduct reports
+in public issues, pull requests, or discussions.
 
 Maintainers are responsible for reviewing reports and protecting reporters'
 privacy. Depending on the harm and circumstances, they may issue a warning,

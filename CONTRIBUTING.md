@@ -44,7 +44,7 @@ repository-specific guidance.
 ## Make a contribution
 
 1. Check [existing issues](https://github.com/deed-ee/isk/issues) for related work.
-   For significant changes, open an issue or, once enabled, a discussion before
+   For significant changes, open an issue or a discussion before
    writing a large patch. Small fixes do not need a separate proposal.
 2. Create a focused branch (`git switch -c my-change`) in your fork or clone.
    Make the change and add or update tests that demonstrate its behavior.
@@ -88,9 +88,8 @@ credentials or confidential reports.
 
 - **Issues:** Reproducible bugs, scoped features, and design proposals. See
   [SECURITY.md](SECURITY.md) for suspected vulnerabilities.
-- **Discussions, if enabled:** Open-ended questions, architecture ideas, and
-  research or benchmark discussions. Until then, use an issue for a concrete
-  proposal or question.
+- **Discussions:** Open-ended questions, architecture ideas, and research or
+  benchmark discussions.
 - **Pull requests:** Review a specific change, its tests, and its trade-offs.
 
 Please follow the [Code of Conduct](CODE_OF_CONDUCT.md). The project uses the
