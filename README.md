@@ -36,4 +36,5 @@ cargo test --workspace
 The workspace is currently a single package with internal compiler stages.
 Semantic editing, contracts, effects, advanced types, JSON diagnostics, and the
 agent-efficiency benchmark suite remain planned work; no benchmark results are
-claimed.
+claimed. See the [roadmap](roadmap.md) for milestones and how we decide when
+they are complete.
