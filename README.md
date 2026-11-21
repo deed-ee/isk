@@ -145,10 +145,14 @@ from agent outcomes such as correctness, time, context, and correction effort.
 The current GCD and coprimality pilot has reference runs for ISK, Rust, and
 Python. It does not yet establish an agent-productivity advantage.
 
-## Contributing
+## Contributing to ISK
 
-Start with [AGENTS.md](AGENTS.md) for contributor guidance and the
-[design evaluation](docs/research/design-evaluation.md) for open questions.
+Compiler and language-design work, research, benchmarks, documentation, and
+reproducible bug reports are equally welcome. Human-written and AI-assisted
+contributions are both welcome. Start with the [contributing guide](CONTRIBUTING.md)
+or look for the `good first issue` label in Issues. Discuss major design changes
+openly before implementation; see the [design evaluation](docs/research/design-evaluation.md)
+for open questions.
 CI runs on pushes to `main` and on pull requests. Reproduce it locally with
 stable Rust (including `rustfmt` and `clippy`) and Python 3 for the existing
 benchmark smoke check:

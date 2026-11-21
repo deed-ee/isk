@@ -1,0 +1,27 @@
+name: Language design proposal
+description: Discuss a change to ISK's syntax or semantics before implementation.
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What problem should this design solve?
+    validations:
+      required: true
+  - type: textarea
+    id: semantics
+    attributes:
+      label: Proposed semantics, alternatives, and compatibility
+      description: Describe observable behavior, with example syntax if relevant. What existing behavior would change?
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Agent efficiency, safety, and performance
+      description: What benefits and risks do you expect? Which assumptions are untested?
+  - type: textarea
+    id: evaluation
+    attributes:
+      label: Evaluation approach
+      description: What test or experiment would distinguish this proposal from its alternatives?

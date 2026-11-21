@@ -1,0 +1,28 @@
+name: Bug report
+description: Report reproducible incorrect behavior in ISK.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not post secrets or suspected vulnerabilities here. See the [security policy](https://github.com/deed-ee/isk/blob/main/SECURITY.md).
+  - type: input
+    id: environment
+    attributes:
+      label: Compiler version or commit and operating system
+      placeholder: "Commit abc1234, Ubuntu 24.04"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the smallest ISK program that reproduces the problem and the command you ran.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected behavior, actual behavior, and relevant diagnostics
+      description: Include output and diagnostic codes if available.
+    validations:
+      required: true
