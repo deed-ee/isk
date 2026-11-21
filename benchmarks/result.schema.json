@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://isk-lang.dev/schemas/benchmark-result-v1.json",
+  "title": "ISK language benchmark trial",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "task",
+    "candidate",
+    "trial",
+    "environment",
+    "model",
+    "measurements",
+    "outcome"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "revision"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "suite", "language", "toolchain"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "suite": {
+          "type": "string",
+          "minLength": 1
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1
+        },
+        "toolchain": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "candidate": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trial": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "architecture", "cpu", "memory_bytes"],
+      "properties": {
+        "os": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cpu": {
+          "type": "string",
+          "minLength": 1
+        },
+        "memory_bytes": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        }
+      }
+    },
+    "model": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["name", "version", "configuration", "tokenizer"],
+      "properties": {
+        "name": {
+          "type": ["string", "null"]
+        },
+        "version": {
+          "type": ["string", "null"]
+        },
+        "configuration": {
+          "type": ["object", "null"]
+        },
+        "tokenizer": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "measurements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_tokens",
+        "output_tokens",
+        "tool_calls",
+        "failed_builds",
+        "correction_iterations",
+        "wall_time_ms",
+        "runtime_ns",
+        "peak_memory_bytes",
+        "binary_size_bytes"
+      ],
+      "properties": {
+        "input_tokens": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "tool_calls": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "failed_builds": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "correction_iterations": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "wall_time_ms": {
+          "type": ["number", "null"],
+          "minimum": 0
+        },
+        "runtime_ns": {
+          "type": ["number", "null"],
+          "minimum": 0
+        },
+        "peak_memory_bytes": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "binary_size_bytes": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["completed", "tests_passed", "notes"],
+      "properties": {
+        "completed": {
+          "type": "boolean"
+        },
+        "tests_passed": {
+          "type": ["boolean", "null"]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,47 +1,27 @@
-# ADR 0001: MVP language subset and compiler architecture
+# ADR 0001: Bootstrap slice (provisional)
 
-- Status: accepted
+- Status: provisional; not a ratified language-design decision
 - Date: 2026-11-21
 
 ## Context
 
-The repository is an empty scaffold. The first milestone must prove an end-to-end
-source-to-native-executable path without locking the language into advanced,
-unmeasured runtime or ownership decisions.
+The repository began as an empty scaffold. A narrow, executable bootstrap slice
+is useful for testing the toolchain, but implementation convenience is not
+evidence that its syntax or semantics are optimal for agent-authored programs.
+ISK is not intended to be a simplified Rust dialect or a thin Rust transpiler.
 
-## Decisions
+## Temporary implementation baseline
 
-- Bootstrap as a Cargo workspace with one compiler package. Keep lexer, parser,
-  semantic checking, and Rust generation as distinct internal stages; split
-  crates only when stable APIs establish useful dependency boundaries.
-- Use explicit `fn`, parameter and return types, `let`/`mut`, semicolon-terminated
-  bindings, and final expressions as block results. This favors predictable,
-  locally parseable structure over implicit indentation or compact punctuation.
-- Support `u64`, `bool`, function calls, arithmetic, comparisons, `if` expressions,
-  local bindings, and `print` for the first executable slice.
-- Compile integers as Rust `u64` with explicit checked arithmetic. Overflow and
-  division by zero panic at runtime in this MVP; behavior does not vary by
-  Rust build profile. A future result/error design may replace panics.
-- Use Rust's ownership and memory safety for generated programs; ISK currently
-  has no reference, heap collection, concurrency, or independent ownership model.
-- Generate deterministic, readable, safe Rust and invoke stable `rustc`.
-  Diagnostics have stable code identifiers and source line/column positions;
-  rustc diagnostics for generated code do not yet map back to ISK spans.
+The current compiler accepts a small language with explicit `fn`, typed
+parameters, `let`/`mut`, arithmetic, conditionals, calls, and a `print` builtin.
+It checks a subset of types, emits Rust, and invokes stable `rustc`. This is a
+vertical-slice experiment only. Its Rust-like syntax, panic-based arithmetic
+failure, lack of independent ownership semantics, and direct source generation
+are limitations to evaluate—not endorsed final language choices.
 
-## Alternatives considered
-
-- Implicitly typed, punctuation-light bindings are compact but make the first
-  checker and error reporting less explicit. The MVP uses named `let` bindings
-  and optional annotations instead.
-- A mandatory tracing garbage collector would simplify ownership but introduce
-  runtime and performance costs without measurements. It is deferred; the MVP
-  inherits Rust ownership behavior through its backend.
-- Separate crates for every conceptual stage would establish boundaries before
-  their interfaces are known. A single package with staged modules is preferred
-  until those boundaries can be justified by implementation experience.
-
-## Consequences
-
-The language is intentionally small and not yet a safe-Rust equivalent. This
-compiler establishes a testable vertical slice, not completion of the broader
-language, agent-editing, or efficiency-benchmark roadmap.
+No syntax, ownership, error, inference, concurrency, semantic-editing, or
+verification design is ratified by this ADR. The alternatives and required
+experiments are tracked in
+[`../research/design-evaluation.md`](../research/design-evaluation.md). Promote
+a candidate to an accepted ADR only after the relevant benchmark has been run,
+its setup and results recorded, and its limitations reviewed.

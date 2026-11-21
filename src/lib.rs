@@ -41,8 +41,8 @@ impl fmt::Display for Diagnostic {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}:{}:{}: {}: {}",
-            self.line, self.column, self.code, self.code, self.message
+            "{}:{}: {}: {}",
+            self.line, self.column, self.code, self.message
         )
     }
 }
@@ -139,7 +139,12 @@ fn lex(source: &str) -> Result<Vec<Token>, Diagnostic> {
                 }
             }
             let value = digits.parse::<u64>().map_err(|_| {
-                Diagnostic::new("ISK-LEX-001", "integer literal is out of range", line, token_column)
+                Diagnostic::new(
+                    "ISK-LEX-001",
+                    "integer literal is out of range",
+                    line,
+                    token_column,
+                )
             })?;
             TokenKind::Number(value)
         } else {
@@ -222,6 +227,7 @@ struct Block {
 struct Statement {
     name: String,
     mutable: bool,
+    annotation: Option<Type>,
     value: Expr,
     line: usize,
     column: usize,
@@ -332,21 +338,12 @@ impl Parser {
                 None
             };
             self.expect(&TokenKind::Equal, "expected `=` in binding")?;
-            let mut value = self.expression()?;
-            if let Some(ty) = annotation {
-                value = Expr {
-                    kind: ExprKind::Call(
-                        format!("__isk_annotate_{}", ty.source_name()),
-                        vec![value],
-                    ),
-                    line: value.line,
-                    column: value.column,
-                };
-            }
+            let value = self.expression()?;
             self.expect(&TokenKind::Semicolon, "expected `;` after binding")?;
             statements.push(Statement {
                 name,
                 mutable,
+                annotation,
                 value,
                 line: start.line,
                 column: start.column,
@@ -531,9 +528,9 @@ impl Parser {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct FunctionSignature {
-    params: &'static [Type],
+    params: Vec<Type>,
     result: Type,
 }
 
@@ -544,14 +541,7 @@ fn check(program: &Program) -> Result<(), Diagnostic> {
             .insert(
                 function.name.clone(),
                 FunctionSignature {
-                    params: Box::leak(
-                        function
-                            .params
-                            .iter()
-                            .map(|(_, ty)| *ty)
-                            .collect::<Vec<_>>()
-                            .into_boxed_slice(),
-                    ),
+                    params: function.params.iter().map(|(_, ty)| *ty).collect(),
                     result: function.result,
                 },
             )
@@ -624,11 +614,27 @@ impl Checker {
         scope: &mut BTreeMap<String, Type>,
     ) -> Result<Type, Diagnostic> {
         for statement in &block.statements {
-            let ty = self.expression(&statement.value, scope)?;
+            let actual = self.expression(&statement.value, scope)?;
+            let ty = statement.annotation.unwrap_or(actual);
+            if actual != ty {
+                return Err(Diagnostic::new(
+                    "ISK-TYPE-002",
+                    format!(
+                        "binding annotation expects `{}`, found `{}`",
+                        ty.source_name(),
+                        actual.source_name()
+                    ),
+                    statement.line,
+                    statement.column,
+                ));
+            }
             if scope.insert(statement.name.clone(), ty).is_some() {
                 return Err(Diagnostic::new(
                     "ISK-SEMA-005",
-                    format!("binding `{}` is already defined in this scope", statement.name),
+                    format!(
+                        "binding `{}` is already defined in this scope",
+                        statement.name
+                    ),
                     statement.line,
                     statement.column,
                 ));
@@ -656,27 +662,6 @@ impl Checker {
                     expr.column,
                 )
             }),
-            ExprKind::Call(name, args) if name.starts_with("__isk_annotate_") => {
-                let expected = match name.as_str() {
-                    "__isk_annotate_u64" => Type::U64,
-                    "__isk_annotate_bool" => Type::Bool,
-                    _ => Type::Unit,
-                };
-                let actual = self.expression(&args[0], scope)?;
-                if actual != expected {
-                    return Err(Diagnostic::new(
-                        "ISK-TYPE-002",
-                        format!(
-                            "binding annotation expects `{}`, found `{}`",
-                            expected.source_name(),
-                            actual.source_name()
-                        ),
-                        expr.line,
-                        expr.column,
-                    ));
-                }
-                Ok(expected)
-            }
             ExprKind::Call(name, args) if name == "print" => {
                 if args.len() != 1 {
                     return Err(Diagnostic::new(
@@ -698,7 +683,7 @@ impl Checker {
                 Ok(Type::Unit)
             }
             ExprKind::Call(name, args) => {
-                let Some(signature) = self.signatures.get(name).copied() else {
+                let Some(signature) = self.signatures.get(name).cloned() else {
                     return Err(Diagnostic::new(
                         "ISK-NAME-002",
                         format!("unknown function `{name}`"),
@@ -720,7 +705,7 @@ impl Checker {
                 }
                 for (arg, expected) in args.iter().zip(signature.params) {
                     let actual = self.expression(arg, scope)?;
-                    if actual != *expected {
+                    if actual != expected {
                         return Err(Diagnostic::new(
                             "ISK-TYPE-006",
                             format!(
@@ -751,10 +736,7 @@ impl Checker {
                     ));
                 }
                 match op {
-                    BinaryOp::Add
-                    | BinaryOp::Subtract
-                    | BinaryOp::Multiply
-                    | BinaryOp::Divide
+                    BinaryOp::Add | BinaryOp::Subtract | BinaryOp::Multiply | BinaryOp::Divide
                         if left_type == Type::U64 =>
                     {
                         Ok(Type::U64)
@@ -829,8 +811,16 @@ fn emit_block(block: &Block, output: &mut String, indent: usize) {
     output.push_str("{\n");
     for statement in &block.statements {
         output.push_str(&" ".repeat(indent + 4));
-        output.push_str(if statement.mutable { "let mut " } else { "let " });
+        output.push_str(if statement.mutable {
+            "let mut "
+        } else {
+            "let "
+        });
         output.push_str(&statement.name);
+        if let Some(ty) = statement.annotation {
+            output.push_str(": ");
+            output.push_str(ty.source_name());
+        }
         output.push_str(" = ");
         emit_expr(&statement.value, output, indent + 4);
         output.push_str(";\n");
@@ -849,9 +839,6 @@ fn emit_expr(expr: &Expr, output: &mut String, indent: usize) {
         ExprKind::Number(value) => output.push_str(&value.to_string()),
         ExprKind::Bool(value) => output.push_str(if *value { "true" } else { "false" }),
         ExprKind::Variable(name) => output.push_str(name),
-        ExprKind::Call(name, args) if name.starts_with("__isk_annotate_") => {
-            emit_expr(&args[0], output, indent)
-        }
         ExprKind::Call(name, args) if name == "print" => {
             output.push_str("println!(\"{}\", ");
             emit_expr(&args[0], output, indent);
@@ -868,21 +855,37 @@ fn emit_expr(expr: &Expr, output: &mut String, indent: usize) {
             }
             output.push(')');
         }
-        ExprKind::Binary(left, op, right) => {
-            output.push('(');
-            emit_expr(left, output, indent);
-            output.push_str(match op {
-                BinaryOp::Add => " + ",
-                BinaryOp::Subtract => " - ",
-                BinaryOp::Multiply => " * ",
-                BinaryOp::Divide => " / ",
-                BinaryOp::Less => " < ",
-                BinaryOp::LessEqual => " <= ",
-                BinaryOp::Equal => " == ",
-            });
-            emit_expr(right, output, indent);
-            output.push(')');
-        }
+        ExprKind::Binary(left, op, right) => match op {
+            BinaryOp::Add | BinaryOp::Subtract | BinaryOp::Multiply | BinaryOp::Divide => {
+                output.push('(');
+                emit_expr(left, output, indent);
+                output.push_str(match op {
+                    BinaryOp::Add => ").checked_add(",
+                    BinaryOp::Subtract => ").checked_sub(",
+                    BinaryOp::Multiply => ").checked_mul(",
+                    BinaryOp::Divide => ").checked_div(",
+                    _ => unreachable!(),
+                });
+                emit_expr(right, output, indent);
+                output.push_str(if matches!(op, BinaryOp::Divide) {
+                    ").expect(\"ISK division by zero\")"
+                } else {
+                    ").expect(\"ISK integer overflow\")"
+                });
+            }
+            _ => {
+                output.push('(');
+                emit_expr(left, output, indent);
+                output.push_str(match op {
+                    BinaryOp::Less => " < ",
+                    BinaryOp::LessEqual => " <= ",
+                    BinaryOp::Equal => " == ",
+                    _ => unreachable!(),
+                });
+                emit_expr(right, output, indent);
+                output.push(')');
+            }
+        },
         ExprKind::If(condition, then_block, else_block) => {
             output.push_str("if ");
             emit_expr(condition, output, indent);
@@ -913,6 +916,8 @@ mod tests {
         let rust = compile(source).unwrap();
         assert!(rust.contains("fn factorial(n: u64) -> u64"));
         assert!(rust.contains("println!(\"{}\", factorial(10))"));
+        assert!(rust.contains("checked_mul"));
+        assert!(rust.contains("checked_sub"));
         assert!(!rust.contains("unsafe"));
     }
 
