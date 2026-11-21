@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -13,6 +14,10 @@ jobs:
         with:
           components: clippy, rustfmt
       - run: cargo fmt --check
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      - run: cargo test --workspace
-      - run: python3 benchmarks/pilot.py --task all --trials 1
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - name: Build the ISK CLI
+        run: cargo build --locked --bin isk
+      - name: Test Rust code, ISK examples, and the controller showcase
+        run: cargo test --locked --workspace
+      - name: Smoke-test the numerical benchmark
+        run: python3 benchmarks/pilot.py --task all --trials 1

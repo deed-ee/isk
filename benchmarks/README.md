@@ -23,6 +23,10 @@ comprehension, and application extensions as the compiler supports them.
 Rotate tasks and hold out validation cases; don't tune the language to pass
 this pilot.
 
+The [controller task catalog](controller-tasks.md) defines the first
+showcase-based bug fix, extension, and semantic refactor. These experiments
+are separate from the existing numerical reference runner.
+
 ## Reproduce the reference baseline
 
 ```sh
@@ -57,6 +61,10 @@ Version 2 adds agent authoring metadata and measurements:
   iterations. Count iterations as model turns and corrections as revisions
   after the first submitted implementation. `context_tokens` is the portion
   of input tokens spent on repository or program context.
+- Verification experiments should also record `validation_cycles` and
+  `test_cycles` (distinct validation and test invocations, including failures)
+  and `test_time_ms` (elapsed time spent executing tests, separate from
+  program runtime). These optional version 2 fields preserve older records.
 - Record `wall_time_ms` from task start to submission of the finally verified
   change (or trial stop for failures). Record final verification and whether
   the first submitted implementation passed the same requirements. Capture
@@ -73,6 +81,14 @@ date and suite, retain exact prompts and settings, and label reference-only
 runs separately. Don't replace old batches when the compiler, model, or
 tasks change.
 
+For verification experiments, use seeded controller repairs and compare
+focused-first verification against full-first verification on the same ISK
+revision. Both groups must pass the same full final suite. Report failures
+missed by the focused pass, end-to-end time and tokens, test execution time,
+validation and correction cycles, success rate, and cost per verified change.
+Run equivalent task groups in Rust and Python separately to distinguish
+language and tooling effects. No focused-selection advantage has been measured.
+
 ## History
 
 - [2026-11-21 reference baseline](results/2026-11-21-reference.jsonl):
@@ -80,3 +96,7 @@ tasks change.
   correctness and startup/build timing measurements, not authoring results.
 
 No controlled agent-authoring results have been collected.
+
+The [proposed dependency workflow experiment](../docs/research/design-evaluation.md#dependency-workflow-experiment-proposed)
+will measure package discovery, integration, and update effort once local
+interfaces exist. It does not change the numerical pilot.

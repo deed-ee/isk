@@ -1,0 +1,76 @@
+fn transition(state: u64, event: u64, interlock_clear: bool) -> u64 {
+    if 4 < state {
+        3
+    } else {
+        if event == 3 {
+            3
+        } else {
+            if state == 3 {
+                if event == 4 {
+                    if interlock_clear { 4 } else { 3 }
+                } else {
+                    3
+                }
+            } else {
+                advance(state, event, interlock_clear)
+            }
+        }
+    }
+}
+
+fn advance(state: u64, event: u64, interlock_clear: bool) -> u64 {
+    if event == 0 {
+        if state == 0 {
+            if interlock_clear { 1 } else { state }
+        } else {
+            if state == 4 {
+                if interlock_clear { 1 } else { state }
+            } else {
+                state
+            }
+        }
+    } else {
+        if event == 1 {
+            if state == 1 {
+                if interlock_clear { 2 } else { state }
+            } else {
+                state
+            }
+        } else {
+            if event == 2 {
+                if state == 1 { 4 } else { if state == 2 { 4 } else { state } }
+            } else {
+                state
+            }
+        }
+    }
+}
+
+fn main() {
+    let blocked = transition(0, 0, false);
+    let starting = transition(blocked, 0, true);
+    let waiting = transition(starting, 1, false);
+    let running = transition(waiting, 1, true);
+    let fault = transition(running, 3, false);
+    let latched = transition(fault, 2, true);
+    let denied = transition(latched, 4, false);
+    let stopped = transition(denied, 4, true);
+    let restarting = transition(stopped, 0, true);
+    let cancelled = transition(restarting, 2, false);
+    let ignored = transition(cancelled, 99, true);
+    let invalid = transition(99, 0, true);
+    let normal_stop = transition(running, 2, false);
+    let blocked_output = print(blocked);
+    let starting_output = print(starting);
+    let waiting_output = print(waiting);
+    let running_output = print(running);
+    let fault_output = print(fault);
+    let latched_output = print(latched);
+    let denied_output = print(denied);
+    let stopped_output = print(stopped);
+    let restarting_output = print(restarting);
+    let cancelled_output = print(cancelled);
+    let ignored_output = print(ignored);
+    let invalid_output = print(invalid);
+    print(normal_stop)
+}

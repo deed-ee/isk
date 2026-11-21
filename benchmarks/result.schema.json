@@ -193,6 +193,9 @@
         "budget": {"type": "object", "minProperties": 1},
         "iterations": {"type": ["integer", "null"], "minimum": 0},
         "failed_tests": {"type": ["integer", "null"], "minimum": 0},
+        "validation_cycles": {"type": ["integer", "null"], "minimum": 0},
+        "test_cycles": {"type": ["integer", "null"], "minimum": 0},
+        "test_time_ms": {"type": ["number", "null"], "minimum": 0},
         "first_attempt_correct": {"type": ["boolean", "null"]},
         "context_tokens": {"type": ["integer", "null"], "minimum": 0},
         "cost_usd": {"type": ["number", "null"], "minimum": 0}

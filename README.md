@@ -51,15 +51,28 @@ fn main() {
 }
 ```
 
+[The coprimality example](examples/coprime.isk) uses integer division and
+recursion to compute a GCD, then prints `true`:
+
+```sh
+cargo run -- run examples/coprime.isk
+```
+
 To query the function or preview a rename without modifying the file:
 
 ```sh
 cargo run -- inspect examples/factorial.isk factorial
+cargo run -- inspect examples/factorial.isk factorial --json
 cargo run -- rename examples/factorial.isk factorial fact
 ```
 
 See the [CLI reference](docs/cli.md) for output formats, build artifacts, and
 the supported language subset.
+
+To create a runnable starter, use `cargo run -- new my-application`. Run its
+`my-application/src/main.isk` with the same CLI commands as the examples.
+See the [project model](docs/projects.md) for the current layout and proposed
+manifest and workspace support.
 
 ## Compiler architecture
 
@@ -83,8 +96,11 @@ compiler, not a rule each agent tool must reimplement.
 
 ```mermaid
 flowchart TD
-    Agent["AI agent"] --> Api["Semantic API"]
-    Api --> Typed["Typed program representation"]
+    Agent["AI agent"] --> CLI["ISK CLI"]
+    Agent --> MCP["Optional MCP adapter"]
+    CLI --> Api["Shared semantic API"]
+    MCP --> Api
+    Api --> Typed["Typed HIR / symbol graph"]
     Typed --> Validation["Validation"]
     Validation --> Compiler["Compiler"]
     Compiler --> Binary["Native executable"]
@@ -94,7 +110,11 @@ flowchart TD
 
 **Target workflow.** The bootstrap already supports inspecting a function,
 previewing a validated rename, and checking and running the result. Broader
-dependency analysis and automatic selection of affected tests are planned.
+dependency analysis and discovery of test entry points are planned.
+
+The experimental [test selector](docs/cli.md#suggest-affected-tests-experimental)
+can suggest named test roots for a known single-file body edit. It is advisory;
+ordinary CI still runs the full regression suite.
 
 ```mermaid
 flowchart TD
@@ -110,6 +130,12 @@ between the working compiler and the proposed semantic model.
 
 ## Roadmap and evidence
 
+ISK separates three kinds of work:
+
+- [Examples](examples/README.md) are small, runnable demonstrations of current language features.
+- [Benchmarks](benchmarks/README.md) measure agent development effort under controlled conditions.
+- [Showcase](showcase/README.md) contains growing reference applications that expose real maintenance needs. The first is a deterministic controller model; networking and services are future stages.
+
 The [roadmap](ROADMAP.md) takes ISK from a stable bootstrap and reproducible
 numerical pilot to a complete semantic editing workflow evaluated against
 plain-text editing.
@@ -123,14 +149,23 @@ Python. It does not yet establish an agent-productivity advantage.
 
 Start with [AGENTS.md](AGENTS.md) for contributor guidance and the
 [design evaluation](docs/research/design-evaluation.md) for open questions.
-Run the following lightweight checks before submitting a change:
+CI runs on pushes to `main` and on pull requests. Reproduce it locally with
+stable Rust (including `rustfmt` and `clippy`) and Python 3 for the existing
+benchmark smoke check:
 
 ```sh
 cargo fmt --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo build --locked --bin isk
+cargo test --locked --workspace
 python3 benchmarks/pilot.py --task all --trials 1
 ```
+
+For just the language checks, run `cargo test --locked --test e2e`. The suite
+uses the built `isk` CLI to compile and execute the language examples and
+controller showcase and checks their stdout and exit status. It also
+distinguishes rejected source (exit `1`) from
+well-typed programs that fail at runtime (exit `101` with the current backend).
 
 Use `--trials 3` for repeated reference measurements. The
 [wordmark](assets/isk-logo.svg) and [square icon](assets/isk-icon.svg) are also

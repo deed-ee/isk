@@ -20,11 +20,13 @@ impl Type {
 }
 
 #[derive(Clone, Debug)]
-struct Diagnostic {
-    code: &'static str,
-    message: String,
-    line: usize,
-    column: usize,
+pub struct Diagnostic {
+    pub code: &'static str,
+    pub message: String,
+    /// One-based source line.
+    pub line: usize,
+    /// One-based Unicode scalar column.
+    pub column: usize,
 }
 
 impl Diagnostic {
@@ -582,8 +584,10 @@ fn check(program: &Program) -> Result<Checker, Diagnostic> {
     let mut checker = Checker {
         signatures,
         references: BTreeMap::new(),
+        caller: FunctionId(0),
     };
-    for function in &program.functions {
+    for (index, function) in program.functions.iter().enumerate() {
+        checker.caller = FunctionId(index);
         if function.name == "main" && (!function.params.is_empty() || function.result != Type::Unit)
         {
             return Err(Diagnostic::new(
@@ -624,7 +628,13 @@ fn check(program: &Program) -> Result<Checker, Diagnostic> {
 
 struct Checker {
     signatures: BTreeMap<String, FunctionSignature>,
-    references: BTreeMap<FunctionId, Vec<usize>>,
+    references: BTreeMap<FunctionId, Vec<ResolvedCall>>,
+    caller: FunctionId,
+}
+
+struct ResolvedCall {
+    caller: FunctionId,
+    offset: usize,
 }
 
 impl Checker {
@@ -726,7 +736,10 @@ impl Checker {
                 self.references
                     .entry(signature.id)
                     .or_default()
-                    .push(expr.offset);
+                    .push(ResolvedCall {
+                        caller: self.caller,
+                        offset: expr.offset,
+                    });
                 for (arg, expected) in args.iter().zip(signature.params) {
                     let actual = self.expression(arg, scope)?;
                     if actual != expected {
@@ -934,11 +947,13 @@ fn emit_expr(expr: &Expr, output: &mut String, indent: usize) {
     }
 }
 
-fn parse(source: &str) -> Result<Program, String> {
-    let tokens = lex(source).map_err(|diagnostic| diagnostic.to_string())?;
-    Parser::new(tokens)
-        .parse()
-        .map_err(|diagnostic| diagnostic.to_string())
+fn parse(source: &str) -> Result<Program, Diagnostic> {
+    Parser::new(lex(source)?).parse()
+}
+
+/// Validate source without generating backend code; return the first diagnostic.
+pub fn check_source(source: &str) -> Result<(), Diagnostic> {
+    CheckedProgram::validate(source).map(|_| ())
 }
 
 pub fn compile(source: &str) -> Result<String, String> {
@@ -966,8 +981,87 @@ pub struct FunctionInfo {
     pub calls: Vec<Range<usize>>,
 }
 
+#[derive(Debug)]
+pub struct UnknownFunction<'a>(pub &'a str);
+
+impl UnknownFunction<'_> {
+    pub const CODE: &'static str = "ISK-INSPECT-001";
+
+    pub fn message(&self) -> String {
+        format!("unknown function `{}`", self.0)
+    }
+}
+
+impl fmt::Display for UnknownFunction<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: unknown function `{}`", Self::CODE, self.0)
+    }
+}
+
+/// A direct call and its enclosing function in the checked source snapshot.
+#[derive(Debug, PartialEq, Eq)]
+pub struct CallSite<'a> {
+    pub caller_id: usize,
+    pub caller_name: &'a str,
+    /// Half-open UTF-8 byte range of the callee name.
+    pub callee_range: Range<usize>,
+}
+
+/// Advisory verification scope for one changed function in a checked snapshot.
+#[derive(Debug, PartialEq, Eq)]
+pub enum TestSelection<'a> {
+    Focused(Vec<&'a str>),
+    Full(TestFallback),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum TestFallback {
+    NoRoots,
+    UnknownChange,
+    UnknownRoot,
+    NoReachableRoot,
+}
+
+impl TestFallback {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::NoRoots => "no-roots",
+            Self::UnknownChange => "unknown-change",
+            Self::UnknownRoot => "unknown-root",
+            Self::NoReachableRoot => "no-reachable-root",
+        }
+    }
+}
+
+/// A validated semantic rename tied to the exact source it was planned against.
+pub struct RenamePlan<'a> {
+    source: &'a str,
+    replacement: String,
+    edits: Vec<Range<usize>>,
+    preview: String,
+}
+
+impl RenamePlan<'_> {
+    pub fn edits(&self) -> &[Range<usize>] {
+        &self.edits
+    }
+
+    pub fn replacement(&self) -> &str {
+        &self.replacement
+    }
+
+    pub fn apply(self, current_source: &str) -> Result<String, String> {
+        if current_source != self.source {
+            return Err("ISK-EDIT-005: source changed since the rename was planned".to_owned());
+        }
+        Ok(self.preview)
+    }
+}
+
 pub fn inspect_function(source: &str, name: &str) -> Result<FunctionInfo, String> {
-    CheckedProgram::new(source)?.inspect_function(name)
+    CheckedProgram::new(source)?
+        .inspect_function(name)
+        .map_err(|error| error.to_string())
 }
 
 /// Return a checked copy with a function declaration and its resolved calls renamed.
@@ -977,8 +1071,13 @@ pub fn rename_function(source: &str, from: &str, to: &str) -> Result<String, Str
 
 impl<'a> CheckedProgram<'a> {
     pub fn new(source: &'a str) -> Result<Self, String> {
+        Self::validate(source).map_err(|diagnostic| diagnostic.to_string())
+    }
+
+    /// Create a checked snapshot, retaining the structured source diagnostic on failure.
+    pub fn validate(source: &'a str) -> Result<Self, Diagnostic> {
         let program = parse(source)?;
-        let semantics = check(&program).map_err(|diagnostic| diagnostic.to_string())?;
+        let semantics = check(&program)?;
         Ok(Self {
             source,
             program,
@@ -986,13 +1085,10 @@ impl<'a> CheckedProgram<'a> {
         })
     }
 
-    pub fn inspect_function(&self, name: &str) -> Result<FunctionInfo, String> {
-        let Some(signature) = self.semantics.signatures.get(name) else {
-            return Err(format!("ISK-INSPECT-001: unknown function `{name}`"));
-        };
+    pub fn inspect_function<'n>(&self, name: &'n str) -> Result<FunctionInfo, UnknownFunction<'n>> {
+        let signature = self.function_signature(name)?;
         let function = &self.program.functions[signature.id.0];
         let name_range = |offset| offset..offset + function.name.len();
-        let calls = self.semantics.references.get(&signature.id);
         Ok(FunctionInfo {
             id: signature.id.0,
             name: function.name.clone(),
@@ -1003,16 +1099,88 @@ impl<'a> CheckedProgram<'a> {
                 .collect(),
             result: signature.result.source_name(),
             declaration: name_range(function.name_offset),
-            calls: calls
-                .into_iter()
-                .flatten()
-                .map(|&offset| name_range(offset))
+            calls: self
+                .references(signature.id)
+                .map(|call| name_range(call.offset))
                 .collect(),
         })
     }
 
+    /// Return direct call sites in source order, including recursive calls.
+    pub fn call_sites(&self, name: &str) -> Result<impl Iterator<Item = CallSite<'_>>, String> {
+        let signature = self
+            .function_signature(name)
+            .map_err(|error| error.to_string())?;
+        let name_len = self.program.functions[signature.id.0].name.len();
+        Ok(self.references(signature.id).map(move |call| CallSite {
+            caller_id: call.caller.0,
+            caller_name: &self.program.functions[call.caller.0].name,
+            callee_range: call.offset..call.offset + name_len,
+        }))
+    }
+
+    /// Find declared test roots that can reach a changed function via static calls.
+    /// The caller must supply all known roots and a body-only change in this file.
+    /// This does not discover tests, measure coverage, or establish correctness.
+    pub fn affected_tests(&self, changed: &str, roots: &[&str]) -> TestSelection<'_> {
+        if roots.is_empty() {
+            return TestSelection::Full(TestFallback::NoRoots);
+        }
+        let Some(changed) = self.semantics.signatures.get(changed) else {
+            return TestSelection::Full(TestFallback::UnknownChange);
+        };
+        let mut is_root = vec![false; self.program.functions.len()];
+        for root in roots {
+            let Some(signature) = self.semantics.signatures.get(*root) else {
+                return TestSelection::Full(TestFallback::UnknownRoot);
+            };
+            is_root[signature.id.0] = true;
+        }
+
+        let mut pending = vec![changed.id];
+        let mut affected = vec![false; self.program.functions.len()];
+        while let Some(id) = pending.pop() {
+            if !affected[id.0] {
+                affected[id.0] = true;
+                pending.extend(self.references(id).map(|call| call.caller));
+            }
+        }
+        let selected: Vec<_> = self
+            .program
+            .functions
+            .iter()
+            .zip(affected.into_iter().zip(is_root))
+            .filter_map(|(function, (affected, is_root))| {
+                (affected && is_root).then_some(function.name.as_str())
+            })
+            .collect();
+        if selected.is_empty() {
+            TestSelection::Full(TestFallback::NoReachableRoot)
+        } else {
+            TestSelection::Focused(selected)
+        }
+    }
+
+    fn function_signature<'n>(
+        &self,
+        name: &'n str,
+    ) -> Result<&FunctionSignature, UnknownFunction<'n>> {
+        self.semantics
+            .signatures
+            .get(name)
+            .ok_or(UnknownFunction(name))
+    }
+
+    fn references(&self, id: FunctionId) -> impl Iterator<Item = &ResolvedCall> {
+        self.semantics.references.get(&id).into_iter().flatten()
+    }
+
     /// Preview a validated rename without modifying this snapshot.
     pub fn rename_function(&self, from: &str, to: &str) -> Result<String, String> {
+        self.plan_rename(from, to)?.apply(self.source)
+    }
+
+    pub fn plan_rename(&self, from: &str, to: &str) -> Result<RenamePlan<'a>, String> {
         for name in [from, to] {
             if matches!(name, "main" | "print") {
                 return Err(format!("ISK-EDIT-001: `{name}` is reserved"));
@@ -1028,33 +1196,36 @@ impl<'a> CheckedProgram<'a> {
         ) {
             return Err(format!("ISK-EDIT-003: invalid function name `{to}`"));
         }
-        if from == to {
-            return Ok(self.source.to_owned());
-        }
-        if self.semantics.signatures.contains_key(to) {
+        if from != to && self.semantics.signatures.contains_key(to) {
             return Err(format!("ISK-EDIT-004: function `{to}` already exists"));
         }
 
         let id = signature.id;
-        let mut offsets = self
-            .semantics
-            .references
-            .get(&id)
-            .cloned()
-            .unwrap_or_default();
-        offsets.push(self.program.functions[id.0].name_offset);
-        offsets.sort_unstable();
+        let mut edits = Vec::new();
+        if from != to {
+            let name_range = |offset| offset..offset + from.len();
+            edits.push(name_range(self.program.functions[id.0].name_offset));
+            edits.extend(self.references(id).map(|call| name_range(call.offset)));
+            edits.sort_unstable_by_key(|range| range.start);
+        }
 
         let mut edited = String::with_capacity(self.source.len());
         let mut cursor = 0;
-        for offset in offsets {
-            edited.push_str(&self.source[cursor..offset]);
+        for range in &edits {
+            edited.push_str(&self.source[cursor..range.start]);
             edited.push_str(to);
-            cursor = offset + from.len();
+            cursor = range.end;
         }
         edited.push_str(&self.source[cursor..]);
-        CheckedProgram::new(&edited)?;
-        Ok(edited)
+        if !edits.is_empty() {
+            CheckedProgram::new(&edited)?;
+        }
+        Ok(RenamePlan {
+            source: self.source,
+            replacement: to.to_owned(),
+            edits,
+            preview: edited,
+        })
     }
 }
 

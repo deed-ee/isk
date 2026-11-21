@@ -9,7 +9,7 @@ make validated changes, and verify their impact.
 Measure progress by the total effort to deliver correct, verified,
 maintainable software while preserving safety, determinism, and native
 performance. The Rust bootstrap and numerical pilot serve that mission;
-neither defines the language. The five
+neither defines the language. The eight
 [engineering pillars](docs/architecture.md) evolve together. Apply the
 [architecture decision gates](docs/architecture.md#decision-and-release-gates)
 at every significant milestone.
@@ -59,9 +59,8 @@ IDs. An ID is deterministic for identical inputs and survives renaming, but
 can change when declarations are added, removed, or reordered.
 
 `CheckedProgram` shares resolved semantic information between inspection and
-rename without requiring the CLI or backend. Rename revalidates the candidate
-and never writes the input. More durable IDs and transactional writes are
-future work, not requirements imposed on this prototype.
+rename without requiring the CLI or backend. Rename revalidates the candidate;
+the default mode never writes the input. More durable IDs remain future work.
 
 **Done when:** tests show deterministic identities for identical inputs,
 successful renames, unchanged unrelated source, and rollback on invalid
@@ -80,11 +79,86 @@ needs, preview and validate a structured change, apply it, run affected
 tests (or the full suite when impact is uncertain), and report the direct
 callers, test scope, and result.
 
+The CLI now supports this sequence for a single file: inspect direct callers,
+print a checked rename plan, apply it to the same source snapshot, and run
+verification. Test execution remains manual, with the full suite as the
+fallback; the independent agent comparison has not been run.
+
 **Done when:** the workflow runs end to end, invalid or stale plans leave
 the source untouched, and an independently repeated
 [semantic-vs-text experiment](docs/research/design-evaluation.md#complete-agent-workflow-experiment)
 reports context, total tokens, corrections, correctness, and time. Decide
 whether to keep, revise, or reject the approach based on that evidence.
+
+## 5. Grow a reference application
+
+The [controller showcase](showcase/README.md) starts with a tested,
+deterministic state machine. Grow it through event-driven modules, an MQTT
+service, a REST microservice, and eventually a larger concurrent system as
+language capabilities are validated. These stages guide experiments; they
+do not require networking or advanced syntax now.
+
+**Done for Stage A when:** the controller and supported examples execute in
+normal CI, and an independent evaluation uses the
+[controller maintenance tasks](benchmarks/controller-tasks.md) to measure
+repair, extension, and refactoring effort. Use those results to identify
+missing capabilities and record trade-offs before adopting language changes.
+
+## 6. Shorten the verification feedback loop
+
+The single-file selector suggests test roots from resolved calls; it does not
+discover or run tests. Next, prototype deterministic test execution and
+structured failure reports linked to symbols. Evaluate coverage, properties,
+and caching only after the simpler workflow is measured. Keep the full
+regression suite in CI regardless of local test selection.
+
+**Done when:** seeded-change experiments compare focused-first and full-first
+verification on the same ISK revision, report affected tests missed against
+the full suite, and measure end-to-end time, test time, tokens, and correction
+cycles without weakening final verification. Separately compare equivalent
+development workflows in Rust and Python.
+
+## 7. Share semantic operations across interfaces
+
+The CLI uses the shared checked snapshot for inspection, rename, and
+affected-test suggestions. JSON for `check` and `inspect` exposes the first
+versioned response formats. Prototype the
+[read-only MCP adapter](docs/architecture.md#minimal-mcp-adapter-design)
+only over working operations; require parity with CLI results before
+expanding it. Compare text-only, semantic CLI, and MCP workflows on the same
+ISK revision, then compare equivalent Rust and Python tasks separately.
+Report tokens, context, tool calls, time, corrections, success, and cost per
+verified change. Do not introduce persistence until repeated parsing is
+measured as a bottleneck.
+
+## 8. Make software reuse agent-native
+
+Start with the controller consuming a local library. The
+[package architecture](docs/packages.md) stages the work: local modules and
+libraries, deterministic multi-package workspaces, locked versioned packages,
+secure distribution and provenance, then semantic discovery and safe updates.
+No public registry is needed for the first stages.
+
+**Done for the first slice when:** a checked public interface can be queried
+without reading private bodies, local resolution is repeatable, and the
+controller and visibility tests pass. Compare agent effort against source and
+documentation lookup before committing to module syntax or a package format.
+Advance later stages only when their integrity and isolation boundaries can
+be verified.
+
+## 9. Make application projects predictable
+
+The first [project scaffold](docs/projects.md) creates a runnable
+`src/main.isk` without configuration. The controller demonstrates this
+layout. Next, evaluate a minimal manifest and explicit project loading
+before adding multi-module or workspace features. Treat project discovery
+and verification as first-class parts of the shared semantic API.
+
+**Done for the first project-aware slice when:** the CLI can check and run
+an explicitly selected application root reproducibly, diagnose invalid
+entries, and expose its checked entry point without reading unrelated files.
+Compare scaffolding and project comprehension with equivalent Rust and
+Python workflows and retain full regression coverage in CI.
 
 ## After the pilot
 

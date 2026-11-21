@@ -1,0 +1,11 @@
+fn may_start(ready: bool, faulted: bool) -> bool {
+    if faulted {
+        false
+    } else {
+        ready
+    }
+}
+
+fn main() {
+    print(may_start(true, true))
+}

@@ -26,12 +26,19 @@ recorded in an ADR.
 | Semantic representation | Typed HIR with stable symbol IDs; dependency/effect graphs; source-preserving semantic nodes | Incremental invalidation correctness, deterministic identity, affected-context size, edit/rollback correctness |
 | Structured editing | Validated transactional semantic operations; patch-based tree edits; source-aware edits | Change locality, preservation of comments/formatting, validation failures, rollback behavior, tokens and tool calls per change |
 | Compilation and verification | Batch compilation; incremental typed stages; contracts and property checks; differential/reference execution | Clean and incremental build time, diagnostic stability, detected-bug rate, false-positive rate, reproducibility |
+| Libraries and packages | Explicit or file-derived modules; qualified or unqualified imports; one version per workspace or isolated versions per dependency | Resolution stability, API lookup effort, conflict diagnosis, compatibility, and supply-chain policy compliance |
 
 These approaches are hypotheses, not a ranking. Hybrid designs are possible.
 Safety, human inspectability, and predictable diagnostics are hard constraints;
 token count alone must never choose a design.
 Also test module boundaries and dependency declarations for how well they
 localize context, make change impact explicit, and support reproducible builds.
+Explicit maps require upkeep but constrain discovery; file-derived modules
+reduce declarations but require deterministic path and ambiguity rules.
+One version per workspace simplifies identity but may block upgrades;
+isolated versions may resolve more graphs but complicate type compatibility
+and caching. These are open choices, not resolver requirements. See the
+[package design](../packages.md) for staged trust and verification gates.
 
 ## Benchmark protocol
 
@@ -93,8 +100,10 @@ observed drop in final correctness; also report success rates, time, and
 correction iterations across all runs. Inspection must be read-only, return
 all and only resolved call sites in deterministic order, and not invoke the
 backend. The interface does not change the compiled program or its runtime
-behavior. Current evidence is limited to output correctness and locality;
-the agent comparison is pending.
+behavior. For the impact report, `inspect --callers` exposes enclosing
+functions directly; the text baseline must determine them from source.
+Current evidence is limited to output correctness and locality; the agent
+comparison is pending.
 
 ### Complete agent workflow experiment
 
@@ -121,3 +130,28 @@ elsewhere. Do not infer a language-wide effect from a rename task.
 Keep this comparison separate from the GCD language comparison: it tests
 semantic tools while holding language fixed. No agent results are available
 yet.
+
+The current single-file reference workflow exercises `inspect --callers`,
+`rename --plan`, `rename --apply`, `check`, and execution. The fixture verifies
+that recursion and unrelated names are preserved and stale or conflicting
+requests leave the file unchanged. Use full verification for this prototype;
+it does not infer which test targets are affected.
+
+### Dependency workflow experiment (proposed)
+
+Start with a frozen local package catalog and a controller task: find a
+compatible guard library, identify its public contract and required
+capabilities, integrate it, and verify controller behavior. Compare source
+and documentation lookup with a checked interface query on the same ISK
+revision. Once versioning exists, extend the task to a safe upgrade and a
+version conflict; use fixed catalog snapshots with competing origins and
+known incompatibilities. Compare equivalent Rust and Python workflows
+separately under matched requirements, fixtures, and agent budgets.
+
+Pilot target: at least 20% lower median time to a verified integration among
+successful runs, with no observed reduction in success rate or increase in
+policy violations. Record tokens, tool calls, corrections, completion time,
+verification results, and policy failures such as selecting an unexpected
+source or treating an unverified claim as evidence. Report all failures
+and variability. Keep evaluation offline on controlled fixtures; passing
+the trial does not demonstrate general supply-chain security.
