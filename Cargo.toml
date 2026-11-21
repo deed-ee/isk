@@ -6,8 +6,10 @@ resolver = "2"
 name = "isk"
 version = "0.1.0"
 edition = "2021"
-description = "An agent-native programming language compiler"
-license = "MIT OR Apache-2.0"
+description = "ISK: a semantic-first programming language and compiler built for autonomous coding agents"
+repository = "https://github.com/deed-ee/isk"
+readme = "README.md"
+license = "MIT"
 
 [lib]
 name = "isk"

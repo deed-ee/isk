@@ -30,6 +30,8 @@ recorded in an ADR.
 These approaches are hypotheses, not a ranking. Hybrid designs are possible.
 Safety, human inspectability, and predictable diagnostics are hard constraints;
 token count alone must never choose a design.
+Also test module boundaries and dependency declarations for how well they
+localize context, make change impact explicit, and support reproducible builds.
 
 ## Benchmark protocol
 
@@ -60,9 +62,62 @@ should vary one factor at a time where feasible. For example, compare grammar
 forms without changing memory semantics, then run a separate memory-policy
 experiment with identical syntax and tasks.
 
+### Numerical pilot: greatest common divisor
+
+See the [benchmark protocol](../../benchmarks/README.md) for the GCD
+implementation and modification tasks, reference runner, agent-trial
+requirements, result format, and history. Passing the reference checks is
+not evidence of cheaper or more reliable agent authoring.
+
 ## Current evidence
 
-The bootstrap integration test executes one factorial program and tests
-overflow behavior. This validates only that a Rust-backed vertical slice runs;
-it does not compare language designs, measure agent effort, or establish
-performance advantages. There are no comparative benchmark results to report.
+The bootstrap integration tests exercise the CLI, including a factorial
+program and arithmetic failures. The pilot now adds repeatable reference
+runs across three languages. Neither establishes a language-design or
+performance advantage. There are no comparative agent-authoring results yet.
+
+The single-file rename prototype has a correctness comparison: on an input
+where a recursive function, a local binding, and a parameter share a name,
+plain text replacement changes all three. The semantic edit changes only the
+declaration and calls that resolve to it. This comparison measures edit
+locality, not agent effort.
+
+### Targeted symbol inspection (provisional)
+
+Hypothesis: a checked signature and resolved call sites reduce the effort of
+understanding a function before a single-file edit. Compare ISK `inspect`
+against full-file reads and text search on the same tasks, including
+recursion, nested calls, and same-name local bindings. The pilot target is at
+least 20% fewer median context tokens among verified successes, with no
+observed drop in final correctness; also report success rates, time, and
+correction iterations across all runs. Inspection must be read-only, return
+all and only resolved call sites in deterministic order, and not invoke the
+backend. The interface does not change the compiled program or its runtime
+behavior. Current evidence is limited to output correctness and locality;
+the agent comparison is pending.
+
+### Complete agent workflow experiment
+
+Give an agent a small working ISK project and ask it to rename a recursive
+helper, preserve behavior and unrelated names, verify the result, and report
+which callers and tests were affected. Use equivalent variants with different
+names and call shapes to limit memorization. The evaluator checks the rename,
+preservation of unrelated source, runtime behavior, and accuracy of the
+impact report. Separately test that conflicting, invalid, and stale plans
+cannot modify the file.
+
+Compare fresh independent sessions on the same ISK revision: both receive
+the same task, test commands, model, tool/time budget, and access to normal
+text tooling. Only one group also receives semantic queries and validated
+edits. Counterbalance variant and group order. Run at least five trials per
+group for this exploratory comparison and retain failures. Record first and
+final correctness, context and total input/output tokens, correction
+iterations, tool calls, time, and cost. Report success rates over all trials
+and the median and spread among verified successes. Treat a 20% reduction in
+median context tokens with no observed drop in final correctness as the pilot
+target; use time and corrections to check whether the savings shifted effort
+elsewhere. Do not infer a language-wide effect from a rename task.
+
+Keep this comparison separate from the GCD language comparison: it tests
+semantic tools while holding language fixed. No agent results are available
+yet.

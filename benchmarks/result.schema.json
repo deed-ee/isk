@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://isk-lang.dev/schemas/benchmark-result-v1.json",
+  "$id": "https://isk-lang.dev/schemas/benchmark-result.json",
   "title": "ISK language benchmark trial",
   "type": "object",
   "additionalProperties": false,
@@ -15,9 +15,25 @@
     "measurements",
     "outcome"
   ],
+  "if": {"properties": {"schema_version": {"const": 2}}},
+  "then": {
+    "required": ["authoring"],
+    "properties": {
+      "model": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "version": {"type": "string", "minLength": 1},
+          "configuration": {"type": "object"},
+          "tokenizer": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  },
+  "else": {"not": {"required": ["authoring"]}},
   "properties": {
     "schema_version": {
-      "const": 1
+      "enum": [1, 2]
     },
     "benchmark": {
       "type": "object",
@@ -162,6 +178,24 @@
           "type": ["integer", "null"],
           "minimum": 0
         }
+      }
+    },
+    "authoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prompt", "tools", "budget", "iterations", "failed_tests",
+        "first_attempt_correct", "context_tokens", "cost_usd"
+      ],
+      "properties": {
+        "prompt": {"type": "string", "minLength": 1},
+        "tools": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "budget": {"type": "object", "minProperties": 1},
+        "iterations": {"type": ["integer", "null"], "minimum": 0},
+        "failed_tests": {"type": ["integer", "null"], "minimum": 0},
+        "first_attempt_correct": {"type": ["boolean", "null"]},
+        "context_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "cost_usd": {"type": ["number", "null"], "minimum": 0}
       }
     },
     "outcome": {

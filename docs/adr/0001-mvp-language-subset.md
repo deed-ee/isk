@@ -9,6 +9,9 @@ The repository began as an empty scaffold. A narrow, executable bootstrap slice
 is useful for testing the toolchain, but implementation convenience is not
 evidence that its syntax or semantics are optimal for agent-authored programs.
 ISK is not intended to be a simplified Rust dialect or a thin Rust transpiler.
+The bootstrap does not ratify a text-first editing model, a permanent program
+representation, or Rust-specific ownership or compilation semantics. See the
+[semantic-first architecture](../architecture.md).
 
 ## Temporary implementation baseline
 
@@ -25,3 +28,7 @@ experiments are tracked in
 [`../research/design-evaluation.md`](../research/design-evaluation.md). Promote
 a candidate to an accepted ADR only after the relevant benchmark has been run,
 its setup and results recorded, and its limitations reviewed.
+
+The bootstrap enables comparisons but has no demonstrated agent-efficiency
+advantage. Future ADRs must record an agent-efficiency hypothesis, the
+comparison baseline, and acceptance criteria using the [ADR template](template.md).
