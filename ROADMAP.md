@@ -151,7 +151,8 @@ be verified.
 
 The first [project scaffold](docs/projects.md) creates a runnable
 `src/main.isk` without configuration. The controller demonstrates this
-layout. Next, evaluate a minimal manifest and explicit project loading
+layout. `check` and `run` resolve its single entry from an explicit root.
+Next, evaluate whether configurable entries justify a minimal manifest
 before adding multi-module or workspace features. Treat project discovery
 and verification as first-class parts of the shared semantic API.
 

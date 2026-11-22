@@ -89,6 +89,47 @@ impl Drop for TestDir {
 }
 
 #[test]
+fn explicit_project_roots_use_only_the_scaffold_entry() {
+    let dir = TestDir::new("root");
+    assert!(dir.isk("new", "my app").status.success());
+    fs::write(dir.0.join("my app/broken.isk"), "not a program").unwrap();
+    let check = dir
+        .command("check", "my app")
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(check.status.success(), "{check:?}");
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&check.stdout).unwrap()["ok"],
+        true
+    );
+    let run = dir.isk("run", "my app");
+    assert!(run.status.success(), "{run:?}");
+    assert_eq!(String::from_utf8_lossy(&run.stdout).trim(), "42");
+    let controller = Path::new(env!("CARGO_MANIFEST_DIR")).join("showcase/controller");
+    let from_root = dir.isk("run", &controller);
+    assert!(from_root.status.success(), "{from_root:?}");
+    assert_eq!(
+        from_root.stdout,
+        dir.isk("run", controller.join("src/main.isk")).stdout
+    );
+    fs::remove_file(dir.0.join("my app/src/main.isk")).unwrap();
+    for command in ["check", "run"] {
+        let output = dir.isk(command, "my app");
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("main.isk"));
+    }
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink("../../outside.isk", dir.0.join("my app/src/main.isk")).unwrap();
+        fs::write(dir.0.join("outside.isk"), "fn main() {}").unwrap();
+        let output = dir.isk("check", "my app");
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("outside its project"));
+    }
+}
+
+#[test]
 fn cli_creates_and_runs_a_starter_without_overwriting_existing_projects() {
     let dir = TestDir::new("new-project");
     let created = dir.isk("new", "my app");
