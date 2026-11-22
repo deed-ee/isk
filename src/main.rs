@@ -171,8 +171,7 @@ fn run_tests(path: &Path, roots: &[&str]) -> Result<bool, String> {
     let source = read_source(path)?;
     let program =
         isk::CheckedProgram::validate(&source).map_err(|error| invalid_source_json(path, error))?;
-    let (tests, rust) = program
-        .compile_test_harness(roots)
+    let (tests, rust) = isk::compile_test_harness(&program, roots)
         .map_err(|error| format!("{}: {error}", path.display()))?;
     let temp =
         tempfile::tempdir().map_err(|error| format!("cannot stage test harness: {error}"))?;
