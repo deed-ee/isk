@@ -41,6 +41,20 @@ time for reference records (null for Python); `runtime_ns` includes process
 startup, computation, and output after one warm-up. Don't use these tiny
 programs to rank language performance or agent productivity.
 
+### Read a reference result record
+
+The first line of the [checked-in reference results](results/2026-11-21-reference.jsonl)
+is one trial. Its fields follow the [result schema](result.schema.json).
+
+| Fields | What this record says |
+| --- | --- |
+| `schema_version`, `candidate`, `trial` | This is a version 1 record for trial `1` of a checked-in `reference` implementation. |
+| `task.id`, `task.suite`, `task.language`, `task.toolchain` | The runner evaluated the `gcd-u64` task in the `numerical` suite using `isk`. The toolchain field records the ISK source fingerprint and backend Rust compiler version. |
+| `outcome.completed`, `outcome.tests_passed`, `outcome.notes` | Both flags are `true`. The trial finished and the warm-up and timed runs both produced the expected output. The empty notes list records no failure details. |
+| `measurements.wall_time_ms` | Building the trial program took `56.199502` milliseconds. This field is `null` in the Python reference rows because the runner skips the build step for Python. |
+| `measurements.runtime_ns` | After one warm-up, the timed process took `972182` nanoseconds, including startup, computation, and output. |
+| `model` and authoring measurements | The runner used checked-in code, so `model` and the `input_tokens`, `output_tokens`, `tool_calls`, `failed_builds`, and `correction_iterations` measurements are `null`. The version 2 `authoring` object is absent in version 1. |
+
 ## Run and report agent trials
 
 Use independent fresh sessions. Supply the matching public task, toolchain
