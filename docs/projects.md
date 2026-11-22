@@ -9,17 +9,22 @@ belongs to ISK, not Cargo, an IDE, or an AI platform.
 `isk new <directory>` creates a new directory with a runnable `src/main.isk`.
 The parent must already exist; the command refuses existing destinations.
 It does not create a manifest, lockfile, cache, or agent-specific prompt file.
-Commands still take an explicit source file:
+`check` and `run` accept an explicit project directory or source file:
 
 ```sh
 cargo run -- new my-application
-cargo run -- check my-application/src/main.isk --json
-cargo run -- run my-application/src/main.isk
+cargo run -- check my-application --json
+cargo run -- run my-application
 ```
 
 The [controller](../showcase/controller/src/main.isk) uses the same layout
 without a manifest. The CLI regression suite runs both the controller and a
 generated starter.
+
+For a directory, the loader resolves only `src/main.isk`. The entry must
+be a regular file inside the canonical project root. Missing entries and
+escaping symlinks are errors; no manifest, ancestor or sibling is searched.
+Other commands still take explicit files. See [ADR 0003](adr/0003-project-root.md).
 
 ## Proposed project format
 
@@ -75,8 +80,8 @@ dependencies, effects, contracts, test relationships, and change impact as the
 compiler can substantiate them. Never report unknown information as absent.
 Keep the core view independent of CLI, MCP, and the Rust backend.
 
-Keep the current explicit file commands. Once project loading exists, design
-a project-root mode for `check`, `build`, `run`, and `inspect`. Add `init`
+Keep the current explicit file commands. Evaluate extending project-root
+mode to `build` and `inspect` when needed. Add `init`
 only when there is meaningful metadata to initialize, `add`/`remove` only
 with validated dependency edits, and `impact`, `test`, and `verify` only
 when their underlying operations work. Start verification with deterministic

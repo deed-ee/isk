@@ -10,8 +10,9 @@ use sha2::{Digest, Sha256};
 fn usage() -> &'static str {
     concat!(
         "Usage: isk new <directory>\n",
-        "       isk check <file.isk> [--diagnostics=tsv|--json]\n",
-        "       isk <build|run> <file.isk>\n",
+        "       isk check <file.isk|project-dir> [--diagnostics=tsv|--json]\n",
+        "       isk build <file.isk>\n",
+        "       isk run <file.isk|project-dir>\n",
         "       isk inspect <file.isk> <function> [--callers|--json]\n",
         "       isk rename <file.isk> <old-name> <new-name> [--plan | --apply <snapshot>]\n",
         "       isk affected-tests <file.isk> <changed-function> [<test-root> ...] [--json]\n",
@@ -297,6 +298,11 @@ fn execute() -> Result<(), String> {
     let mut args = env::args_os().skip(1);
     let command = args.next().and_then(|arg| arg.into_string().ok());
     let path = args.next().map(PathBuf::from).ok_or_else(usage)?;
+    let path = if matches!(command.as_deref(), Some("check" | "run")) && path.is_dir() {
+        isk::project::application_entry(&path)?
+    } else {
+        path
+    };
     if command.as_deref() == Some("new") {
         if args.next().is_some() {
             return Err(usage().to_owned());

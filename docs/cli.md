@@ -5,6 +5,10 @@ prints its path. The destination must not already exist and its parent
 must exist. Run the generated source with `isk run <path-to-main.isk>`.
 See the [project model](projects.md) for proposed manifest support.
 
+`isk check <project-dir>` and `isk run <project-dir>` use that directory's
+`src/main.isk`. `check` supports the same diagnostic flags as with a file.
+Entry resolution errors, like other file I/O errors, are plain text.
+
 `isk check <file.isk>` validates source without invoking `rustc` or writing
 build artifacts. `isk build <file.isk>` writes generated Rust and the native
 executable under `.isk-build/` and prints the executable's path. Each canonical

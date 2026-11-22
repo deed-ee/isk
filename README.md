@@ -70,7 +70,7 @@ See the [CLI reference](docs/cli.md) for output formats, build artifacts, and
 the supported language subset.
 
 To create a runnable starter, use `cargo run -- new my-application`. Run its
-`my-application/src/main.isk` with the same CLI commands as the examples.
+starter with `cargo run -- check my-application` and `cargo run -- run my-application`.
 See the [project model](docs/projects.md) for the current layout and proposed
 manifest and workspace support.
 
