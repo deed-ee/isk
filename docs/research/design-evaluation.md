@@ -9,8 +9,9 @@ ISK source should look like Rust or that Rust ownership is ISK ownership.
 ## Status
 
 All design choices below are **open**. The first compiler slice is not evidence
-that a candidate is clearer, safer, faster, or cheaper for agents. No
-agent-efficiency or comparative-language results have been collected yet.
+that a candidate is clearer, safer, faster, or cheaper for agents. A small
+[controller pilot](../../benchmarks/results/2026-11-22-controller/README.md)
+compares semantic versus text tooling within ISK, not language designs.
 Do not mark a candidate accepted until its experiment and limitations are
 recorded in an ADR.
 
@@ -81,7 +82,8 @@ not evidence of cheaper or more reliable agent authoring.
 The bootstrap integration tests exercise the CLI, including a factorial
 program and arithmetic failures. The pilot now adds repeatable reference
 runs across three languages. Neither establishes a language-design or
-performance advantage. There are no comparative agent-authoring results yet.
+performance advantage. The controller pilot separately records agent-authoring
+results, including all first submissions and infrastructure failures.
 
 The single-file rename prototype has a correctness comparison: on an input
 where a recursive function, a local binding, and a parameter share a name,
@@ -102,8 +104,8 @@ all and only resolved call sites in deterministic order, and not invoke the
 backend. The interface does not change the compiled program or its runtime
 behavior. For the impact report, `inspect --callers` exposes enclosing
 functions directly; the text baseline must determine them from source.
-Current evidence is limited to output correctness and locality; the agent
-comparison is pending.
+The controller pilot bundles inspection with rename and records total tokens;
+it does not measure inspection alone or the context-token target.
 
 ### Complete agent workflow experiment
 
@@ -128,8 +130,8 @@ target; use time and corrections to check whether the savings shifted effort
 elsewhere. Do not infer a language-wide effect from a rename task.
 
 Keep this comparison separate from the GCD language comparison: it tests
-semantic tools while holding language fixed. No agent results are available
-yet.
+semantic tools while holding language fixed. The first pilot uses a
+single-caller controller fixture; the richer workflow above remains unmeasured.
 
 The current single-file reference workflow exercises `inspect --callers`,
 `rename --plan`, `rename --apply`, `check`, and execution. The fixture verifies
