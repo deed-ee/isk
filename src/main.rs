@@ -8,7 +8,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 
 fn usage() -> &'static str {
-    "Usage: isk new <directory>\n       isk check <file.isk> [--diagnostics=tsv|--json]\n       isk <build|run> <file.isk>\n       isk inspect <file.isk> <function> [--callers|--json]\n       isk rename <file.isk> <old-name> <new-name> [--plan | --apply <snapshot>]\n       isk affected-tests <file.isk> <changed-function> [<test-root> ...]"
+    "Usage: isk new <directory>\n       isk check <file.isk> [--diagnostics=tsv|--json]\n       isk <build|run> <file.isk>\n       isk inspect <file.isk> <function> [--callers|--json]\n       isk rename <file.isk> <old-name> <new-name> [--plan | --apply <snapshot>]\n       isk affected-tests <file.isk> <changed-function> [<test-root> ...] [--json]"
 }
 
 fn new_project(root: &Path) -> Result<(), String> {
@@ -246,22 +246,42 @@ fn execute() -> Result<(), String> {
             .next()
             .and_then(|name| name.into_string().ok())
             .ok_or_else(usage)?;
-        let roots = args
+        let mut roots = args
             .map(|name| name.into_string())
             .collect::<Result<Vec<_>, _>>()
             .map_err(|_| usage())?;
+        let json_output = roots.last().is_some_and(|arg| arg == "--json");
+        if json_output {
+            roots.pop();
+        }
+        if changed == "--json" || roots.iter().any(|root| root == "--json") {
+            return Err(usage().to_owned());
+        }
         let roots: Vec<_> = roots.iter().map(String::as_str).collect();
         let source = read_source(&path)?;
-        let program = isk::CheckedProgram::new(&source)
-            .map_err(|error| format!("{}: {error}", path.display()))?;
-        match program.affected_tests(&changed, &roots) {
-            isk::TestSelection::Focused(roots) => {
+        let program = isk::CheckedProgram::validate(&source).map_err(|error| {
+            if json_output {
+                invalid_source_json(&path, error)
+            } else {
+                format!("{}: {error}", path.display())
+            }
+        })?;
+        match (program.affected_tests(&changed, &roots), json_output) {
+            (isk::TestSelection::Focused(roots), true) => println!(
+                "{}",
+                json!({"schema_version": 1, "ok": true, "scope": "focused", "tests": roots})
+            ),
+            (isk::TestSelection::Full(reason), true) => println!(
+                "{}",
+                json!({"schema_version": 1, "ok": true, "scope": "full", "reason": reason.code()})
+            ),
+            (isk::TestSelection::Focused(roots), false) => {
                 println!("scope\tfocused");
                 for root in roots {
                     println!("test\t{root}");
                 }
             }
-            isk::TestSelection::Full(reason) => println!("scope\tfull\t{}", reason.code()),
+            (isk::TestSelection::Full(reason), false) => println!("scope\tfull\t{}", reason.code()),
         }
         return Ok(());
     }

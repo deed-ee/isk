@@ -174,7 +174,7 @@ fn cli_suggests_transitive_test_roots_or_requests_full_verification() {
          fn main() {}",
     )
     .unwrap();
-    for (args, expected) in [
+    for (args, expected, expected_json) in [
         (
             &[
                 "helper",
@@ -184,13 +184,27 @@ fn cli_suggests_transitive_test_roots_or_requests_full_verification() {
                 "test_direct",
             ][..],
             "scope\tfocused\ntest\ttest_indirect\ntest\ttest_direct",
+            serde_json::json!({"scope": "focused", "tests": ["test_indirect", "test_direct"]}),
         ),
-        (&["helper"], "scope\tfull\tno-roots"),
-        (&["removed", "test_direct"], "scope\tfull\tunknown-change"),
-        (&["helper", "unmapped"], "scope\tfull\tunknown-root"),
+        (
+            &["helper"],
+            "scope\tfull\tno-roots",
+            serde_json::json!({"scope": "full", "reason": "no-roots"}),
+        ),
+        (
+            &["removed", "test_direct"],
+            "scope\tfull\tunknown-change",
+            serde_json::json!({"scope": "full", "reason": "unknown-change"}),
+        ),
+        (
+            &["helper", "unmapped"],
+            "scope\tfull\tunknown-root",
+            serde_json::json!({"scope": "full", "reason": "unknown-root"}),
+        ),
         (
             &["helper", "test_independent"],
             "scope\tfull\tno-reachable-root",
+            serde_json::json!({"scope": "full", "reason": "no-reachable-root"}),
         ),
     ] {
         let output = dir
@@ -204,7 +218,45 @@ fn cli_suggests_transitive_test_roots_or_requests_full_verification() {
             String::from_utf8(output.stdout).unwrap().trim_end(),
             expected
         );
+        let output = dir
+            .command("affected-tests", "suite.isk")
+            .args(args)
+            .arg("--json")
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(0), "{output:?}");
+        assert!(output.stderr.is_empty());
+        let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        let mut expected_json = expected_json;
+        expected_json["schema_version"] = 1.into();
+        expected_json["ok"] = true.into();
+        assert_eq!(json, expected_json);
     }
+
+    let misplaced = dir
+        .command("affected-tests", "suite.isk")
+        .args(["helper", "--json", "test_direct"])
+        .output()
+        .unwrap();
+    assert_eq!(misplaced.status.code(), Some(1), "{misplaced:?}");
+    assert!(misplaced.stdout.is_empty());
+    assert!(misplaced.stderr.starts_with(b"Usage:"));
+
+    fs::write(dir.0.join("suite.isk"), "fn main() { missing() }").unwrap();
+    let invalid = dir
+        .command("affected-tests", "suite.isk")
+        .args(["helper", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(invalid.status.code(), Some(1), "{invalid:?}");
+    assert!(invalid.stdout.is_empty());
+    let json: serde_json::Value = serde_json::from_slice(&invalid.stderr).unwrap();
+    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["ok"], false);
+    assert_eq!(json["error"]["code"], "ISK-NAME-002");
+    assert_eq!(json["error"]["path"], "suite.isk");
+    assert_eq!(json["error"]["line"], 1);
+    assert_eq!(json["error"]["column"], 13);
     assert!(!dir.0.join(".isk-build").exists());
 }
 
