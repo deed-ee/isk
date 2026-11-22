@@ -172,7 +172,7 @@ def trial(task, group, number, out):
                        "--format", "json", "--archived"]
                 if sid:
                     cmd += ["--session", sid]
-                p = subprocess.run(cmd + [prompt], cwd=client, capture_output=True,
+                p = subprocess.run(cmd + [prompt], cwd=client, env={**os.environ, "PWD": str(client)}, capture_output=True,
                                    timeout=max(.1, LIMIT - (time.monotonic() - started)))
                 events = [json.loads(line) for line in p.stdout.splitlines()]
                 if p.returncode or not events or any(e["type"] in ("error", "tool_use") for e in events):
