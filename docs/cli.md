@@ -101,7 +101,7 @@ suite when there is no reliable mapping from changed symbols to tests.
 
 ## Suggest affected tests (experimental)
 
-`isk affected-tests <file.isk> <changed-function> [<test-root> ...]`
+`isk affected-tests <file.isk> <changed-function> [<test-root> ...] [--json]`
 accepts one known body-only change and a caller-supplied inventory of test
 entry functions in the checked file. The command does not compute a diff or
 discover tests. For a rename, removed symbol, cross-file change, incomplete
@@ -111,6 +111,14 @@ On stdout, `scope\tfocused` is followed by `test\t<root>` records (one per
 selected root in declaration order). Or the command emits
 `scope\tfull\t<reason>` alone. Here `\t` denotes a tab. Reasons include
 `no-roots`, `unknown-change`, `unknown-root`, and `no-reachable-root`.
-Invalid source fails rather than returning a selection; use `check` for a
-structured source diagnostic. The command never runs tests. A focused result
-is a suggestion for early feedback, not a guarantee of correctness.
+
+With a trailing `--json`, the command writes one object to stdout with
+`schema_version: 1`, `ok: true`, and either `scope: "focused"` with a `tests`
+array (in declaration order), or `scope: "full"` with a `reason` string.
+Both scopes are successful recommendations. Invalid source exits with status
+1 and, in JSON mode, writes the same structured source error as `check --json`
+to stderr, with no selection on stdout. Usage and file-read errors remain
+plain text.
+
+The command never runs tests. A focused result is a suggestion for early
+feedback, not a guarantee of correctness.
