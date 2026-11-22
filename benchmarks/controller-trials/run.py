@@ -66,6 +66,7 @@ def call(work, *args):
            "--ro-bind", "/usr", "/usr", "--symlink", "usr/bin", "/bin",
            "--symlink", "usr/lib", "/lib", "--symlink", "usr/lib64", "/lib64",
            "--ro-bind", str(SYSROOT), "/rust", "--ro-bind", str(ISK), "/isk",
+           "--ro-bind", "/etc/alternatives", "/etc/alternatives",
            "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp",
            "--bind", str(work), "/work", "--chdir", "/work", "--clearenv",
            "--setenv", "PATH", "/rust/bin:/usr/bin", "--setenv", "HOME", "/tmp",
