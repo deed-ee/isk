@@ -114,6 +114,17 @@ fn cli_creates_and_runs_a_starter_without_overwriting_existing_projects() {
     let extra = dir.command("new", "unused").arg("extra").output().unwrap();
     assert_eq!(extra.status.code(), Some(1), "{extra:?}");
     assert!(!dir.0.join("unused").exists());
+
+    let destination = Path::new("missing").join("app");
+    let missing = dir.isk("new", &destination);
+    assert_eq!(missing.status.code(), Some(1), "{missing:?}");
+    assert!(missing.stdout.is_empty());
+    let stderr = String::from_utf8_lossy(&missing.stderr);
+    assert!(
+        stderr.contains(&format!("cannot create {}:", destination.display())),
+        "{stderr}"
+    );
+    assert!(!dir.0.join("missing").exists());
 }
 
 #[test]
@@ -676,6 +687,7 @@ fn cli_reports_runtime_arithmetic_failures() {
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
     for (fixture, diagnostic) in [
         ("integer-overflow.isk", "ISK integer overflow"),
+        ("subtraction-underflow.isk", "ISK integer overflow"),
         ("divide-by-zero.isk", "ISK division by zero"),
     ] {
         let source = fixtures.join(fixture);
