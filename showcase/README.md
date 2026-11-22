@@ -27,6 +27,12 @@ source file and no manifest. The repository's CLI suite verifies its output.
 | Fault | 3 | Trip | 3 |
 | Stopped | 4 | Reset | 4 |
 
+In the demo above, output lines 5–8 read `3, 3, 3, 4`. Starting from
+Running (`2`), Trip enters Fault (`3`) even with the interlock blocked.
+Stop with a clear interlock leaves Fault latched (`3`), as does Reset
+with a blocked interlock (`3`). Only the next Reset, with the interlock
+clear, moves the controller to Stopped (`4`).
+
 - Start moves Idle or Stopped to Starting; Ready moves Starting to Running.
   Both require a clear interlock.
 - Stop moves Starting or Running to Stopped without requiring a clear

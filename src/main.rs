@@ -132,7 +132,10 @@ fn inspect_json(path: &Path, source: &str, name: &str) -> Result<(), String> {
 
 fn build_file(path: &Path) -> Result<PathBuf, String> {
     let rust = compile_file(path)?;
-    let output_dir = PathBuf::from(".isk-build");
+    let input = fs::canonicalize(path)
+        .map_err(|error| format!("cannot resolve {}: {error}", path.display()))?;
+    let key = Sha256::digest(input.as_os_str().as_encoded_bytes());
+    let output_dir = PathBuf::from(".isk-build").join(format!("{key:x}"));
     fs::create_dir_all(&output_dir).map_err(|error| error.to_string())?;
     let stem = path
         .file_stem()

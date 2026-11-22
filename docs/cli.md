@@ -7,7 +7,9 @@ See the [project model](projects.md) for proposed manifest support.
 
 `isk check <file.isk>` validates source without invoking `rustc` or writing
 build artifacts. `isk build <file.isk>` writes generated Rust and the native
-executable to `.isk-build/` and prints the executable's path. `isk run
+executable under `.isk-build/` and prints the executable's path. Each canonical
+input path gets its own build directory, so building `a/main.isk` and
+`b/main.isk` from the same working directory keeps both executables. `isk run
 <file.isk>` builds and executes the program.
 
 The bootstrap supports `u64`, `bool`, functions, local `let`/`mut` bindings,

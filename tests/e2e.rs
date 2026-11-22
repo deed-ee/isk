@@ -31,6 +31,20 @@ impl TestDir {
 }
 
 #[test]
+fn cli_runs_with_rust_keywords_as_binding_names() {
+    let dir = TestDir::new("binding-names");
+    fs::write(
+        dir.0.join("bindings.isk"),
+        "fn increment(self: u64) -> u64 { let match = self + 1; match }\n\
+         fn main() { print(increment(41)) }",
+    )
+    .unwrap();
+    let run = dir.isk("run", "bindings.isk");
+    assert!(run.status.success(), "{run:?}");
+    assert_eq!(String::from_utf8(run.stdout).unwrap().trim(), "42");
+}
+
+#[test]
 fn cli_previews_valid_renames_and_does_not_touch_the_input() {
     let dir = TestDir::new("rename");
     let source = "fn helper(n: u64) -> u64 { n + 1 }\n\
@@ -100,6 +114,17 @@ fn cli_creates_and_runs_a_starter_without_overwriting_existing_projects() {
     let extra = dir.command("new", "unused").arg("extra").output().unwrap();
     assert_eq!(extra.status.code(), Some(1), "{extra:?}");
     assert!(!dir.0.join("unused").exists());
+
+    let destination = Path::new("missing").join("app");
+    let missing = dir.isk("new", &destination);
+    assert_eq!(missing.status.code(), Some(1), "{missing:?}");
+    assert!(missing.stdout.is_empty());
+    let stderr = String::from_utf8_lossy(&missing.stderr);
+    assert!(
+        stderr.contains(&format!("cannot create {}:", destination.display())),
+        "{stderr}"
+    );
+    assert!(!dir.0.join("missing").exists());
 }
 
 #[test]
@@ -590,6 +615,33 @@ fn cli_respects_arithmetic_precedence_and_grouping() {
 }
 
 #[test]
+fn builds_keep_same_named_programs_independently_runnable() {
+    let dir = TestDir::new("same-named-programs");
+    let mut binaries = Vec::new();
+    for (project, value) in [("first", 17), ("second", 42)] {
+        fs::create_dir(dir.0.join(project)).unwrap();
+        let source = Path::new(project).join("main.isk");
+        fs::write(
+            dir.0.join(&source),
+            format!("fn main() {{ print({value}) }}"),
+        )
+        .unwrap();
+        let build = dir.isk("build", source);
+        assert!(build.status.success(), "{build:?}");
+        let path = String::from_utf8(build.stdout).unwrap();
+        binaries.push((dir.0.join(path.trim_end()), value));
+    }
+    for (binary, expected) in binaries {
+        let run = Command::new(binary).output().unwrap();
+        assert!(run.status.success(), "{run:?}");
+        assert_eq!(
+            String::from_utf8(run.stdout).unwrap().trim(),
+            expected.to_string()
+        );
+    }
+}
+
+#[test]
 fn cli_builds_literal_arithmetic_and_preserves_u64_values() {
     let dir = TestDir::new("literal-arithmetic");
     fs::write(
@@ -610,8 +662,8 @@ fn cli_builds_literal_arithmetic_and_preserves_u64_values() {
         String::from_utf8_lossy(&build.stderr)
     );
     let binary = PathBuf::from(String::from_utf8(build.stdout).unwrap().trim());
-    assert_eq!(binary.parent(), Some(Path::new(".isk-build")));
-    assert!(dir.0.join(".isk-build/literal-arithmetic.rs").is_file());
+    assert!(binary.starts_with(".isk-build"));
+    assert!(dir.0.join(binary.with_extension("rs")).is_file());
 
     let program = Command::new(dir.0.join(binary))
         .current_dir(&dir.0)
@@ -700,6 +752,7 @@ fn cli_reports_runtime_arithmetic_failures() {
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
     for (fixture, diagnostic) in [
         ("integer-overflow.isk", "ISK integer overflow"),
+        ("subtraction-underflow.isk", "ISK integer overflow"),
         ("divide-by-zero.isk", "ISK division by zero"),
     ] {
         let source = fixtures.join(fixture);
