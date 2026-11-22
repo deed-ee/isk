@@ -1,20 +1,25 @@
-# ISK capability matrix
+# Capability matrix
 
-This describes the bootstrap, not promises for a release. **Implemented**
-means working within the documented scope. **Experimental** means runnable but
-provisional. **Designed** means a staged design exists, not an implementation.
-**Proposed** means an experiment or candidate is defined but not selected.
-**Unexplored** means no design has been selected or evaluated here.
+**Implemented** = working bootstrap behavior with executable coverage.
+**Experimental** = runnable prototype with a bounded contract.
+**Designed** = documented interface or architecture, no working capability.
+**Proposed** = candidate awaiting evaluation. **Unexplored** = no concrete
+design or evidence here. These labels apply to the specific slice, not to
+every future version of the language.
 
-| Area | Status | Scope and limits |
-| --- | --- | --- |
-| Language and types | Implemented | Single-file functions, local bindings, branches, `u64` and `bool`; checked calls and expressions. The current syntax and type system are provisional. |
-| Application roots | Implemented | `new` scaffolds `src/main.isk`; `check` and `run` accept an explicit directory with that entry. No manifest, module discovery, or workspace resolution. |
-| Modules and packages | Designed | [Staged local modules, interfaces, and dependency resolution](packages.md); no ISK package manager or registry. |
-| Semantic API | Experimental | Checked snapshots, typed signatures, and resolved call sites. Function IDs are snapshot-local, not durable across declaration changes. No persistent workspace service. |
-| Structured editing | Experimental | Checked single-file rename preview, plan, and apply; stale plans are rejected. No general transactional editing API. |
-| Verification | Experimental | Explicit named boolean roots and symbol-linked reports; advisory affected-root selection. No test discovery or automatic focused verification. |
-| Contracts and effects | Proposed | [Research candidates](research/design-evaluation.md), not user-facing guarantees or enforced capabilities. |
-| Runtime and native compilation | Implemented | `build` and `run` lower to Rust and invoke `rustc`; `check` does not. Integer overflow and division by zero fail at runtime. This is not evidence of performance parity with other languages. |
-| Network applications | Proposed | The [offline controller](../showcase/README.md) works today. A host-backed REST prototype is planned; ISK does not provide HTTP, JSON, or MQTT. |
-| Security and concurrency | Unexplored | No verified execution sandbox or ISK concurrency model. The package trust design does not enforce permissions or provide supply-chain guarantees. |
+| Area | Works today | Beyond today's boundary |
+|---|---|---|
+| Constructs and types | Implemented: single-file functions, calls, local bindings, `u64`, `bool`, unit, checked arithmetic, comparisons and `if`. | Proposed: nominal domain types, inference alternatives, exhaustive matching and typed failures. No final syntax. |
+| Projects and modules | Implemented: `new`, `check DIR`, `run DIR` resolve the scaffold's `src/main.isk`; explicit-file commands remain available. | Designed: [project loader evolution](projects.md). No manifest required or interpreted, imports, multi-file visibility or workspace resolution. |
+| Libraries and packages | No ISK package manager; Cargo dependencies implement the bootstrap. | Designed: [local-first package stages](packages.md). Registry, lockfile resolution and update intelligence are not available. |
+| Semantic API | Experimental: checked snapshot, typed signatures, snapshot-local IDs, resolved calls, byte ranges, CLI JSON. | Designed: protocol-independent API consumers and read-only MCP adapter. Proposed: durable IDs and editable typed representation. |
+| Structured transformations | Experimental: checked single-function rename, plan, stale-snapshot rejection and atomic file replacement. | Proposed: structured construction, cross-file transactions and impact queries. No concurrent-writer guarantee. |
+| Contracts, effects, capabilities | No general language constructs or enforcement for these. | Proposed: inspectable invariants/effects. Unexplored: a verified contract proof format for third-party packages. |
+| Testing and diagnostics | Implemented: CLI source diagnostics and full bootstrap regressions. Experimental: explicit boolean test roots, per-symbol results and advisory `affected-tests`. | Proposed: incremental verification and property checks. No test discovery or coverage guarantee. |
+| Runtime and native compilation | Implemented: `build` and `run` emit Rust and invoke `rustc` to produce a native executable. `check` needs no backend. Overflow/division errors fail at runtime. | Proposed: independent performance/resource targets, concurrency and backend evaluation. No stable ABI, portable resource bound or bit-reproducibility claim. |
+| Security and memory safety | Bootstrap restricts inputs by its type/grammar subset; project roots reject escaping entry paths. | Proposed: capability enforcement and provenance verification. Native execution is not sandboxed by the ISK CLI; the experiment runner's isolation is not a language guarantee. |
+| Network applications | The controller showcase runs offline. | Proposed: [host-backed REST controller](https://github.com/deed-ee/isk/issues/23). HTTP and JSON would be host facilities; ISK has no native HTTP, JSON or MQTT support. |
+
+Evidence: [CLI contract](cli.md), [end-to-end tests](../tests/e2e.rs),
+[ADR for explicit tests](adr/0002-explicit-test-runner.md) and
+[ADR for project roots](adr/0003-project-root.md).

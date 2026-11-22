@@ -51,7 +51,9 @@ clear, moves the controller to Stopped (`4`).
 | D. REST microservice | HTTP, JSON, validation, async execution, persistence | Planned |
 | E. Larger system | Shared interfaces, dependencies, concurrency, iterative maintenance | Planned |
 
-These are capability targets, not implementation commitments. When a task
+These are capability targets, not a required implementation order. The
+[first proposed REST slice](https://github.com/deed-ee/isk/issues/23)
+uses a host adapter and does not depend on MQTT or native networking. When a task
 exposes a missing capability, document the problem and expected benefit,
 compare alternatives, and test the smallest viable change. Record correctness,
 agent effort, and runtime trade-offs in an ADR before adopting a design.

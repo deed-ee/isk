@@ -7,6 +7,9 @@
 Describe the smallest viable change, the previous ISK behavior, and relevant
 alternatives.
 
+For a significant language feature, address the [innovation gate](../architecture.md#language-innovation-gate),
+including a tooling-only alternative and a rejection condition.
+
 ## Agent-efficiency hypothesis and acceptance criteria
 
 State the task, comparison baseline, primary measure and threshold, and

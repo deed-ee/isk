@@ -112,6 +112,9 @@ language and tooling effects. No focused-selection advantage has been measured.
 - [2026-11-22 controller agent pilot](results/2026-11-22-controller/README.md):
   20 live sessions comparing text and semantic tools on the same ISK revision,
   with first submissions, failed-start history and reproducible grading.
+- [2026-11-22 multi-caller rename](results/2026-11-22-parcel/README.md):
+  ten fresh sessions with grep, range reads, ordinary edits and CLI tests
+  in both groups. A tooling comparison, not a language comparison.
 
 The [proposed dependency workflow experiment](../docs/research/design-evaluation.md#dependency-workflow-experiment-proposed)
 will measure package discovery, integration, and update effort once local
