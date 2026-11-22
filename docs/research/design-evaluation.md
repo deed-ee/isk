@@ -135,7 +135,10 @@ elsewhere. Do not infer a language-wide effect from a rename task.
 
 Keep this comparison separate from the GCD language comparison: it tests
 semantic tools while holding language fixed. The first pilot uses a
-single-caller controller fixture; the richer workflow above remains unmeasured.
+single-caller controller fixture. The [parcel replication](../../benchmarks/results/2026-11-22-parcel/README.md)
+adds multiple callers, grep and range reads, but not recursion, test impact
+reporting or context-only token counts. Keep that richer workflow open;
+record verification time separately from elapsed task time in its next trial.
 
 The current single-file reference workflow exercises `inspect --callers`,
 `rename --plan`, `rename --apply`, `check`, and execution. The fixture verifies

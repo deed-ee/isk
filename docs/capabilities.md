@@ -18,6 +18,7 @@ every future version of the language.
 | Testing and diagnostics | Implemented: CLI source diagnostics and full bootstrap regressions. Experimental: explicit boolean test roots, per-symbol results and advisory `affected-tests`. | Proposed: incremental verification and property checks. No test discovery or coverage guarantee. |
 | Runtime and native compilation | Implemented: `build` and `run` emit Rust and invoke `rustc` to produce a native executable. `check` needs no backend. Overflow/division errors fail at runtime. | Proposed: independent performance/resource targets, concurrency and backend evaluation. No stable ABI, portable resource bound or bit-reproducibility claim. |
 | Security and memory safety | Bootstrap restricts inputs by its type/grammar subset; project roots reject escaping entry paths. | Proposed: capability enforcement and provenance verification. Native execution is not sandboxed by the ISK CLI; the experiment runner's isolation is not a language guarantee. |
+| Network applications | The controller showcase runs offline. | Proposed: [host-backed REST controller](https://github.com/deed-ee/isk/issues/23). HTTP and JSON would be host facilities; ISK has no native HTTP, JSON or MQTT support. |
 
 Evidence: [CLI contract](cli.md), [end-to-end tests](../tests/e2e.rs),
 [ADR for explicit tests](adr/0002-explicit-test-runner.md) and

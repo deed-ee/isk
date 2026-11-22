@@ -25,8 +25,9 @@ milestone 3. Each milestone ends with a decision, not just an implementation.
    gives both arms search, range reads and real test commands. Replicate
    the [protocol](benchmarks/controller-trials/parcel-protocol.md) on a new
    model and held-out fixture before generalizing.
-2. **One checked edit (B/C).** Prototype renaming a parameter and its resolved
-   uses. Compare with targeted text edits; test same-name bindings in other
+2. **One checked edit (B/C).** Use replication traces to decide whether
+   parameter rename addresses a recurring context or edit cost. If so, prototype
+   it and compare with targeted text edits; test same-name bindings in other
    functions, stale snapshots and conflicts. Stop if locality or rollback fails.
 3. **One language distinction (A/F/G).** In the [controller experiment](docs/research/agent-native-language-design.md#state-machine-case-keep-behavior-fixed)
    compare numeric IDs plus a lint with distinct state/event types, holding
@@ -35,10 +36,12 @@ milestone 3. Each milestone ends with a decision, not just an implementation.
 4. **Verification (D/F).** On seeded body changes compare focused-first
    versus full-first explicit tests. Record missed failures, total verified
    time and corrections; both arms finish with the same full suite.
-5. **Larger application (A/B/D/E/G).** Extract a local controller policy
-   library and change its public interface and consumer together. Establish
-   equivalent Rust/Python tasks and hidden traces before measuring discovery,
-   integration, verification and native costs. No registry or MCP prerequisite.
+5. **Larger application (A/B/D/E/G).** Start with the [host-backed REST
+   controller](https://github.com/deed-ee/isk/issues/23): the host handles HTTP
+   and JSON, while ISK owns the transition. Use identical acceptance tests
+   for an equivalent reference service and report host costs separately.
+   Later, extract a local policy library and change its interface and consumer
+   together to measure discovery and integration. Neither slice needs a registry.
 
 ## Current baseline
 
@@ -65,7 +68,8 @@ failure for the benchmark tasks so later versions can compare repair effort.
 ## 2. Run a reproducible benchmark pilot
 
 The reference runner and shared GCD fixtures establish implementation and
-modification tasks. Controlled agent trials and their raw results are still open.
+modification tasks. Controlled cross-language numerical trials and their raw
+results are still open; the within-ISK controller pilot is separate.
 
 Start with one numerical task that all three languages can express: ISK, Rust,
 and Python. Use equivalent requirements and hidden tests and hold the model
@@ -108,7 +112,7 @@ callers, test scope, and result.
 
 The CLI now supports this sequence for a single file: inspect direct callers,
 print a checked rename plan, apply it to the same source snapshot, and run
-verification. Test execution remains manual, with the full suite as the
+verification. Named boolean tests can run via `isk test`, with the full suite as the
 fallback. The controller pilot measures a simpler rename; the recursive
 workflow with multiple callers, test impact and context attribution remains open.
 
@@ -121,8 +125,8 @@ whether to keep, revise, or reject the approach based on that evidence.
 ## 5. Grow a reference application
 
 The [controller showcase](showcase/README.md) starts with a tested,
-deterministic state machine. Grow it through event-driven modules, an MQTT
-service, a REST microservice, and eventually a larger concurrent system as
+deterministic state machine. Evaluate the host-backed REST slice first, then
+revisit event-driven modules, MQTT and larger concurrent systems as
 language capabilities are validated. These stages guide experiments; they
 do not require networking or advanced syntax now.
 
@@ -150,8 +154,8 @@ development workflows in Rust and Python.
 ## 7. Share semantic operations across interfaces
 
 The CLI uses the shared checked snapshot for inspection, rename, and
-affected-test suggestions. JSON for `check` and `inspect` exposes the first
-versioned response formats. Prototype the
+affected-test suggestions. `check`, `inspect` and `affected-tests` expose
+versioned JSON response formats. Prototype the
 [read-only MCP adapter](docs/architecture.md#minimal-mcp-adapter-design)
 only over working operations; require parity with CLI results before
 expanding it. Compare text-only, semantic CLI, and MCP workflows on the same

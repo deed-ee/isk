@@ -40,6 +40,10 @@ handling at the boundary.
 | Typed graph | Query guards, transitions and identities directly | Lossy round trips or unreadable diffs. |
 
 Begin with paper/host-language prototypes, not a state-machine keyword.
+Seed three defects: swapped state/event values, a missing case, and a wrong
+but well-typed transition. Attribute detection separately to types, lint
+or semantic queries, and behavioral tests. Exhaustiveness alone cannot reject
+the third defect. Set a native runtime regression margin before collecting data.
 Freeze an independent oracle: every known state × event × interlock,
 unknown IDs and multi-step traces including blocked Ready and latched Fault.
 Ask fresh agents to implement, predict unseen traces, add an event and
