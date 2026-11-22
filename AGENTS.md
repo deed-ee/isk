@@ -1,8 +1,9 @@
 # ISK contributor instructions
 
 **Build ISK for agents, not merely with agents.** This is the permanent
-project mission. When choosing a design, ask what would work best if
-programming languages were invented for autonomous coding agents today.
+project mission. See the [permanent vision](docs/vision.md). When choosing a
+design, ask what would work best if programming languages were invented for
+autonomous coding agents today.
 Design around how agents understand, construct, transform, and verify
 software, not around existing languages or text-first workflows. Treat
 human-readable source as one view of a semantic program. Let agents query and
@@ -13,7 +14,9 @@ including a shared semantic API, agent interfaces, and efficient verification.
 - For significant language, compiler, tooling, or roadmap changes, state the
   agent benefit as a hypothesis. Record the baseline, measurable success
   criteria, correctness and runtime constraints, results, and limitations in
-  the relevant ADR. Keep unmeasured designs provisional.
+  the relevant ADR. For language changes, test whether comparable tooling
+  could provide the same benefit without a semantic change. Keep unmeasured
+  designs provisional.
 - Use the smallest useful implementation. Reuse the compiler's checked
   semantic information for agent tools, keep output machine-readable where
   practical, and validate edits before returning or writing them. Keep the

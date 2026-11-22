@@ -119,15 +119,23 @@ cannot modify the file.
 
 Compare fresh independent sessions on the same ISK revision: both receive
 the same task, test commands, model, tool/time budget, and access to normal
-text tooling. Only one group also receives semantic queries and validated
-edits. Counterbalance variant and group order. Run at least five trials per
-group for this exploratory comparison and retain failures. Record first and
-final correctness, context and total input/output tokens, correction
+text tooling: grep or equivalent search, targeted line-range reads, ordinary
+editing, and normal build and test commands. Use a larger, previously unused
+fixture with multiple direct callers. Only one group also receives semantic
+queries and validated edits. Counterbalance variant and group order. Run at
+least five trials per group for this exploratory comparison and retain
+failures. Record first and final correctness, context and total input/output tokens, correction
 iterations, tool calls, time, and cost. Report success rates over all trials
 and the median and spread among verified successes. Treat a 20% reduction in
 median context tokens with no observed drop in final correctness as the pilot
 target; use time and corrections to check whether the savings shifted effort
 elsewhere. Do not infer a language-wide effect from a rename task.
+
+Publish per-trial distributions, including which tools were actually used.
+Separate input and output tokens, including tool descriptions in the total
+cost of the assigned workflow. Report verification commands and time spent
+verifying; do not substitute total tokens for missing context-only measures.
+Repeat with a second model before generalizing beyond the first model.
 
 Keep this comparison separate from the GCD language comparison: it tests
 semantic tools while holding language fixed. The first pilot uses a
@@ -138,6 +146,61 @@ The current single-file reference workflow exercises `inspect --callers`,
 that recursion and unrelated names are preserved and stale or conflicting
 requests leave the file unchanged. Use full verification for this prototype;
 it does not infer which test targets are affected.
+
+### Controller language-design experiment
+
+Keep the checked-in [controller](../../showcase/README.md) unchanged as the
+regression baseline. Numeric state and event IDs allow combinations that the
+compiler cannot distinguish by type. Nested conditionals also make it harder
+to tell whether a missing case is intentional. Test whether a general-purpose
+mechanism makes those mistakes easier to detect, not whether a shorter spelling
+looks better.
+
+- **Baseline:** numeric IDs and ordinary conditionals, with named constants
+  and equivalent lookup tools where available.
+- **First candidate:** distinct algebraic types for states and events, with
+  exhaustive matching. This can reject swapped values and omitted cases,
+  but exhaustive matches alone cannot prove a transition is correct.
+- **Alternatives:** a typed transition table may make coverage easier to
+  inspect but needs a clear rule for guards and defaults. A contract can
+  express the fault-latch invariant across different implementations, but
+  its checking cost and guarantees need separate evaluation. A semantic
+  graph can expose relationships without changing source syntax; use this
+  as a tooling-only comparison. Do not add a state-machine keyword for
+  this experiment.
+
+**First experiment:** use a small disposable prototype and the same
+transition oracle for each variant. Preserve behavior for valid and invalid
+inputs at the boundary, including unknown event IDs and the latched fault.
+Ask fresh sessions to explain a guarded transition, then add one event
+without changing existing transitions. Seed swapped state/event values,
+an omitted branch, and a wrong but type-correct transition. Match the tool
+conditions and report which defects the compiler, tooling, and tests catch.
+
+**Decision criteria:** the typed candidate must reject the seeded type
+confusion and missing cases it claims to prevent, and pass the same behavior
+oracle. Measure comprehension accuracy, first and final correctness, input
+and output tokens, corrections, and time to verified change. Measure native
+runtime separately on the same workload; fix an acceptable regression margin
+before running trials. Prefer the simplest candidate that improves the
+verified workflow without reducing correctness or inspectability. If tooling
+alone achieves the benefit, do not attribute it to the language.
+
+### Attributing results
+
+- **Language design:** compare equivalent tasks across ISK, Rust, and Python
+  with comparable tool access. Also vary one design factor inside ISK to
+  avoid attributing every difference to the language.
+- **Semantic tooling:** hold language and task fixed; vary access to semantic
+  operations. Where feasible, repeat with comparable tools in another language.
+- **Combined environment:** evaluate the whole workflow on a reference
+  application. Record host-provided capabilities and tooling differences
+  explicitly. A combined win is not evidence that any one component caused it.
+
+The main risks are mistaking the Rust lowering for language semantics,
+expanding adapters before experiments identify a need, and generalizing from
+small tasks or weaker baselines. Keep candidates provisional, preserve the
+working bootstrap, and require evidence specific to the decision at hand.
 
 ### Dependency workflow experiment (proposed)
 

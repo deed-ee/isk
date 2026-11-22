@@ -1,6 +1,6 @@
 # ISK ROADMAP
 
-**Permanent mission: Build ISK for agents, not merely with agents.** Design
+**[Permanent mission](docs/vision.md): Build ISK for agents, not merely with agents.** Design
 the language and development model around how autonomous agents understand,
 construct, transform, and verify software. Human-readable source remains a
 view of the program; checked semantics give agents a way to query what matters,
@@ -25,6 +25,30 @@ at every significant milestone.
   pilot](benchmarks/results/2026-11-22-controller/README.md) compares tool
   access within ISK. Cross-language agent trials remain open.
 
+## Next research milestones, in priority order
+
+1. **Replicate the rename pilot with a stronger text baseline.** Use a new,
+   larger fixture with multiple callers. Both arms get search, targeted
+   reads, editing, and verification; only one gets semantic operations.
+2. **Run a language-design experiment in parallel.** Compare the unchanged
+   controller with [typed state and event
+   alternatives](docs/research/design-evaluation.md#controller-language-design-experiment)
+   before adopting syntax or extending the backend.
+3. **Make one evidence-driven semantic edit improvement.** Use the replication
+   traces to choose a recurring failure or context bottleneck. Prototype one
+   validated operation and re-run the affected task with the same oracle.
+4. **Compare focused-first and full-first verification.** Seed controller
+   changes, count missed failures against the full suite, and compare time
+   and effort through the same final verification gate.
+5. **Run an application-level benchmark.** Use the [host-backed REST
+   controller](https://github.com/deed-ee/isk/issues/23) with shared acceptance
+   tests and an equivalent reference. Account for host-provided capabilities
+   separately; MQTT is a later experiment, not a prerequisite for this slice.
+
+The milestones below track ongoing work, not prerequisites that must all be
+finished before language research can begin. See the [capability
+matrix](docs/capabilities.md) for current limits.
+
 ## 1. Stabilize the bootstrap
 
 Keep this milestone focused on the current language subset. Cover the CLI's
@@ -39,7 +63,8 @@ failure for the benchmark tasks so later versions can compare repair effort.
 ## 2. Run a reproducible benchmark pilot
 
 The reference runner and shared GCD fixtures establish implementation and
-modification tasks. Controlled agent trials and their raw results are still open.
+modification tasks. Controlled cross-language numerical trials and their raw
+results are still open; the within-ISK controller pilot is separate.
 
 Start with one numerical task that all three languages can express: ISK, Rust,
 and Python. Use equivalent requirements and hidden tests and hold the model
@@ -82,9 +107,10 @@ callers, test scope, and result.
 
 The CLI now supports this sequence for a single file: inspect direct callers,
 print a checked rename plan, apply it to the same source snapshot, and run
-verification. Test execution remains manual, with the full suite as the
-fallback. The controller pilot measures a simpler rename; the recursive
-workflow with multiple callers, test impact and context attribution remains open.
+verification. Test roots are selected explicitly, with the full suite as the
+fallback when scope is uncertain. The controller pilot measures a simpler
+rename; the recursive workflow with multiple callers, test impact, and
+context attribution remains open.
 
 **Done when:** the workflow runs end to end, invalid or stale plans leave
 the source untouched, and an independently repeated
@@ -95,10 +121,10 @@ whether to keep, revise, or reject the approach based on that evidence.
 ## 5. Grow a reference application
 
 The [controller showcase](showcase/README.md) starts with a tested,
-deterministic state machine. Grow it through event-driven modules, an MQTT
-service, a REST microservice, and eventually a larger concurrent system as
+deterministic state machine. Evaluate a host-backed REST slice first, then
+revisit event-driven modules, MQTT, and a larger concurrent system as
 language capabilities are validated. These stages guide experiments; they
-do not require networking or advanced syntax now.
+do not require native networking or advanced syntax now.
 
 **Done for Stage A when:** the controller and supported examples execute in
 normal CI, and an independent evaluation uses the
@@ -124,8 +150,8 @@ development workflows in Rust and Python.
 ## 7. Share semantic operations across interfaces
 
 The CLI uses the shared checked snapshot for inspection, rename, and
-affected-test suggestions. JSON for `check` and `inspect` exposes the first
-versioned response formats. Prototype the
+affected-test suggestions. JSON for `check`, `inspect`, and `affected-tests`
+exposes versioned response formats. Prototype the
 [read-only MCP adapter](docs/architecture.md#minimal-mcp-adapter-design)
 only over working operations; require parity with CLI results before
 expanding it. Compare text-only, semantic CLI, and MCP workflows on the same
@@ -164,7 +190,7 @@ entries, and expose its checked entry point without reading unrelated files.
 Compare scaffolding and project comprehension with equivalent Rust and
 Python workflows and retain full regression coverage in CI.
 
-## After the pilot
+## Longer-horizon language research
 
 Evaluate syntax, inference, error handling, ownership, concurrency, effects,
 and contracts in focused experiments rather than treating the bootstrap as

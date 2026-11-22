@@ -3,7 +3,8 @@
 If programming languages were invented primarily for agents, text would not
 have to be their only interface. ISK treats human-readable source as one
 representation of a program and checked semantics as the basis for understanding,
-editing, and verifying it. Eight pillars evolve together:
+editing, and verifying it. The [project vision](vision.md) defines the mission;
+these eight engineering pillars evolve together:
 
 1. Agent-native language design.
 2. Semantic-first program representation.
@@ -146,3 +147,11 @@ decision to keep, revise, or reject it. Use the
 Run correctness and short reference checks continuously; reserve expensive
 controlled agent trials for milestones. Do not ratify a language design on
 implementation convenience or unmeasured benefits.
+
+For a new language mechanism, compare it with the simplest existing
+abstraction and with a tooling-only alternative. Specify which guarantee the
+compiler can enforce, what complexity or runtime cost it adds, and what
+result would justify keeping or rejecting it. If comparable tooling gives
+the same benefit without changing semantics, prefer tooling unless the
+language design has another demonstrated advantage. This gate does not
+require a research ADR for a routine fix.

@@ -4,7 +4,7 @@
 
 **An experimental, semantic-first programming language for autonomous coding agents.**
 
-[Quick start](#quick-start) · [Architecture](#compiler-architecture) · [Roadmap](ROADMAP.md) · [Benchmarks](benchmarks/README.md)
+[Quick start](#quick-start) · [Vision](docs/vision.md) · [Capabilities](docs/capabilities.md) · [Architecture](#compiler-architecture) · [Roadmap](ROADMAP.md) · [Benchmarks](benchmarks/README.md)
 
 ## The idea
 
@@ -142,8 +142,10 @@ plain-text editing.
 
 The [benchmark protocol](benchmarks/README.md) separates program measurements
 from agent outcomes such as correctness, time, context, and correction effort.
-The current GCD and coprimality pilot has reference runs for ISK, Rust, and
-Python. It does not yet establish an agent-productivity advantage.
+The numerical pilot has reference runs for ISK, Rust, and Python. The
+[controller pilot](benchmarks/results/2026-11-22-controller/README.md)
+compares tool access within ISK. Neither establishes a language-design or
+general agent-productivity advantage.
 
 ## Contributing to ISK
 
