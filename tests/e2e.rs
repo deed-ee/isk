@@ -524,6 +524,7 @@ fn cli_rejects_invalid_programs_without_build_artifacts() {
         ),
         ("parse-error.isk", "3:1: ISK-PARSE-004: expected `;`"),
         ("type-error.isk", "2:5: ISK-TYPE-002: binding annotation"),
+        ("duplicate-function.isk", "2:1: ISK-SEMA-001:"),
     ] {
         let source = fixtures.join(fixture);
         for command in ["check", "build", "run"] {
