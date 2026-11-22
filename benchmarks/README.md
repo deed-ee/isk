@@ -48,7 +48,7 @@ is one trial. Its fields follow the [result schema](result.schema.json).
 
 | Fields | What this record says |
 | --- | --- |
-| `schema_version`, `candidate`, `trial` | This is a version 1 record for trial `1` of a checked-in `reference` implementation. |
+| `schema_version`, `candidate`, `trial` | This is a schema version 1 record for trial `1` of a checked-in `reference` implementation. The separate `benchmark.version` field is `"2"`. |
 | `task.id`, `task.suite`, `task.language`, `task.toolchain` | The runner evaluated the `gcd-u64` task in the `numerical` suite using `isk`. The toolchain field records the ISK source fingerprint and backend Rust compiler version. |
 | `outcome.completed`, `outcome.tests_passed`, `outcome.notes` | Both flags are `true`. The trial finished and the warm-up and timed runs both produced the expected output. The empty notes list records no failure details. |
 | `measurements.wall_time_ms` | Building the trial program took `56.199502` milliseconds. This field is `null` in the Python reference rows because the runner skips the build step for Python. |
