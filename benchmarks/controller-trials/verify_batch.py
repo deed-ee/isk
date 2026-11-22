@@ -8,9 +8,11 @@ import sys
 HERE = Path(__file__).resolve().parent
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("batch", type=Path)
+parser.add_argument("--parcel", action="store_true")
 args = parser.parse_args()
 rows = [json.loads(line) for line in (args.batch / "results.jsonl").read_text().splitlines()]
-expected = {(task, arm, i) for task in ("rename", "repair") for arm in ("semantic", "text") for i in range(1, 6)}
+tasks = ("parcel",) if args.parcel else ("rename", "repair")
+expected = {(task, arm, i) for task in tasks for arm in ("semantic", "text") for i in range(1, 6)}
 for row in rows:
     task = row["task"]["id"].removeprefix("controller-")
     arm = row["candidate"]
@@ -32,9 +34,12 @@ for row in rows:
                 capture_output=True,
             )
             assert verdict == json.loads(result.stdout)
+        if task == "parcel":
+            from run import parcel_grade
+            assert verdict == parcel_grade(snapshot)
     assert bool(verdicts) == row["outcome"]["completed"]
     assert bool(verdicts and all(verdicts[0].values())) == row["authoring"]["first_attempt_correct"]
     assert bool(verdicts and all(verdicts[-1].values())) == row["outcome"]["tests_passed"]
     assert max(0,len(verdicts)-1) == row["measurements"]["correction_iterations"]
 assert not expected
-print("20 distinct allocations; first/final verdicts and submission evidence agree.")
+print(f"{len(rows)} distinct allocations; first/final verdicts and submission evidence agree.")
