@@ -64,19 +64,36 @@ another function are not valid rename targets.
 
 ## Plan and apply
 
+From the repository root, work on a temporary copy of the factorial example
+so the checked-in source stays unchanged:
+
 ```sh
-cp examples/factorial.isk work.isk
-cargo run -- inspect work.isk factorial --callers
-cargo run -- rename work.isk factorial fact --plan
-snapshot='sha256:…' # Replace with the value printed by --plan.
-cargo run -- rename work.isk factorial fact --apply "$snapshot"
-cargo run -- check work.isk --diagnostics=tsv
-cargo run -- run work.isk
+work_dir=$(mktemp -d)
+work="$work_dir/factorial.isk"
+cp examples/factorial.isk "$work"
+cargo run --locked -- run "$work"
+cargo run --locked -- inspect "$work" factorial --callers
+plan=$(cargo run --locked -- rename "$work" factorial fact --plan)
+printf '%s\n' "$plan"
 ```
 
-The snapshot value is the second field of the plan's first record. The
-remaining records are `replace <start> <end> <new-name>`, tab-separated,
-in source order. Apply rebuilds and revalidates the requested rename,
+The first run prints `3628800`. The inspection lists `factorial` (the
+recursive call) and `main` as direct callers. The plan starts with a
+`snapshot` record, followed by three tab-separated
+`replace <start> <end> <new-name>` records in source order: one for the
+declaration and one for each call.
+
+After reviewing the plan, apply it to the same copy and verify the result:
+
+```sh
+snapshot=$(printf '%s\n' "$plan" | awk -F '\t' 'NR == 1 && $1 == "snapshot" { print $2 }')
+cargo run --locked -- rename "$work" factorial fact --apply "$snapshot"
+cargo run --locked -- check "$work" --diagnostics=tsv
+cargo run --locked -- run "$work"
+```
+
+The check succeeds without printing a diagnostic, and the run still prints
+`3628800`. Apply rebuilds and revalidates the requested rename,
 rejects a mismatched snapshot, and atomically replaces a regular file. It
 rejects symlinks and does not coordinate with concurrent external writers;
 use it on a file you are not editing elsewhere. Run the full project test
