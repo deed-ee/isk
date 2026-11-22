@@ -21,8 +21,9 @@ at every significant milestone.
 - The current syntax and semantics are provisional. See the
   [bootstrap ADR](docs/adr/0001-mvp-language-subset.md) for the limits.
 - The [design evaluation](docs/research/design-evaluation.md) defines
-  competing hypotheses and a benchmark protocol. No comparative results
-  have been collected yet.
+  competing hypotheses and a benchmark protocol. The [first controller
+  pilot](benchmarks/results/2026-11-22-controller/README.md) compares tool
+  access within ISK. Cross-language agent trials remain open.
 
 ## 1. Stabilize the bootstrap
 
@@ -82,7 +83,8 @@ callers, test scope, and result.
 The CLI now supports this sequence for a single file: inspect direct callers,
 print a checked rename plan, apply it to the same source snapshot, and run
 verification. Test execution remains manual, with the full suite as the
-fallback; the independent agent comparison has not been run.
+fallback. The controller pilot measures a simpler rename; the recursive
+workflow with multiple callers, test impact and context attribution remains open.
 
 **Done when:** the workflow runs end to end, invalid or stale plans leave
 the source untouched, and an independently repeated

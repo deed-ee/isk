@@ -22,7 +22,8 @@ tools, and limits pinned; retain failures and capture the metrics in the
 For the rename, compare ISK text tools alone against the same ISK revision
 with semantic inspection and validated edits available. Check unrelated names
 and reported impact as well as behavior. Hold language fixed so this measures
-tooling, not syntax. No agent results have been collected for these tasks.
+tooling, not syntax. See the [rename and repair pilot](results/2026-11-22-controller/README.md)
+for the first within-ISK results; cross-language trials remain open.
 
 ### Reproduce the controller rename task
 

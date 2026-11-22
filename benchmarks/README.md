@@ -109,7 +109,9 @@ language and tooling effects. No focused-selection advantage has been measured.
   three repetitions per task and language, 18 records total. These are
   correctness and startup/build timing measurements, not authoring results.
 
-No controlled agent-authoring results have been collected.
+- [2026-11-22 controller agent pilot](results/2026-11-22-controller/README.md):
+  20 live sessions comparing text and semantic tools on the same ISK revision,
+  with first submissions, failed-start history and reproducible grading.
 
 The [proposed dependency workflow experiment](../docs/research/design-evaluation.md#dependency-workflow-experiment-proposed)
 will measure package discovery, integration, and update effort once local
