@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 310" role="img" aria-labelledby="title desc">
+<title id="title">Median total tokens per agent session</title>
+<desc id="desc">Paired bars compare text tools with the same tools plus semantic operations. Five sessions per bar. Exact values appear on each bar.</desc>
+<rect width="680" height="310" fill="white"/>
+<g font-family="sans-serif" fill="#182d39">
+<text x="12" y="27" font-size="20">Median total tokens per session</text>
+<text x="12" y="50" font-size="13">Input + output · five sessions per bar · lower means fewer tokens</text>
+<text x="12" y="94" font-size="13">Controller rename</text>
+<rect x="190" y="73" width="261.56" height="17" fill="#405a82"/>
+<text x="457.56" y="87" font-size="13">2,012</text>
+<rect x="190" y="95" width="200.72" height="17" fill="#137565"/>
+<text x="396.72" y="109" font-size="13">1,544</text>
+<text x="12" y="160" font-size="13">Controller repair</text>
+<rect x="190" y="139" width="258.44" height="17" fill="#405a82"/>
+<text x="454.44" y="153" font-size="13">1,988</text>
+<rect x="190" y="161" width="268.84" height="17" fill="#137565"/>
+<text x="464.84" y="175" font-size="13">2,068</text>
+<text x="12" y="226" font-size="13">Parcel rename (with search)</text>
+<rect x="190" y="205" width="377.26" height="17" fill="#405a82"/>
+<text x="573.26" y="219" font-size="13">2,902</text>
+<rect x="190" y="227" width="222.30" height="17" fill="#137565"/>
+<text x="418.30" y="241" font-size="13">1,710</text>
+<path d="M190 67v185" stroke="#677681"/>
+<rect x="12" y="275" width="15" height="15" fill="#405a82"/>
+<text x="33" y="288" font-size="14">Text tools</text>
+<rect x="154" y="275" width="15" height="15" fill="#137565"/>
+<text x="175" y="288" font-size="14">Same tools + semantic operations</text>
+</g></svg>

@@ -150,6 +150,8 @@ held the language fixed. All first submissions passed. Median total tokens
 were about 23% lower for semantic rename and 4% higher for interlock repair;
 the repair sessions did not use the extra tools. The text arm lacked grep.
 This is preliminary tooling evidence, not a language or safety comparison.
+See the [visual comparison and raw results](benchmarks/README.md#history)
+for both this pilot and its multi-caller rename follow-up with targeted search.
 
 ## Contributing to ISK
 
