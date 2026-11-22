@@ -9,10 +9,36 @@ make validated changes, and verify their impact.
 Measure progress by the total effort to deliver correct, verified,
 maintainable software while preserving safety, determinism, and native
 performance. The Rust bootstrap and numerical pilot serve that mission;
-neither defines the language. The eight
+neither defines the language. The seven
 [engineering pillars](docs/architecture.md) evolve together. Apply the
 [architecture decision gates](docs/architecture.md#decision-and-release-gates)
 at every significant milestone.
+
+## Next research milestones, in priority order
+
+Carry the [vision](docs/vision.md) through all seven pillars: A language,
+B representation, C agent interfaces, D verification, E libraries, F evidence
+and G performance/safety. Do not wait for more CLI infrastructure to start
+milestone 3. Each milestone ends with a decision, not just an implementation.
+
+1. **Fairer rename (B/C/F).** The [first multi-caller run](benchmarks/results/2026-11-22-parcel/README.md)
+   gives both arms search, range reads and real test commands. Replicate
+   the [protocol](benchmarks/controller-trials/parcel-protocol.md) on a new
+   model and held-out fixture before generalizing.
+2. **One checked edit (B/C).** Prototype renaming a parameter and its resolved
+   uses. Compare with targeted text edits; test same-name bindings in other
+   functions, stale snapshots and conflicts. Stop if locality or rollback fails.
+3. **One language distinction (A/F/G).** In the [controller experiment](docs/research/agent-native-language-design.md#state-machine-case-keep-behavior-fixed)
+   compare numeric IDs plus a lint with distinct state/event types, holding
+   spelling and tooling as constant as possible. Check swapped inputs,
+   invalid-ID handling, native cost and repair effort before proposing syntax.
+4. **Verification (D/F).** On seeded body changes compare focused-first
+   versus full-first explicit tests. Record missed failures, total verified
+   time and corrections; both arms finish with the same full suite.
+5. **Larger application (A/B/D/E/G).** Extract a local controller policy
+   library and change its public interface and consumer together. Establish
+   equivalent Rust/Python tasks and hidden traces before measuring discovery,
+   integration, verification and native costs. No registry or MCP prerequisite.
 
 ## Current baseline
 

@@ -17,6 +17,10 @@ recorded in an ADR.
 
 ## Candidates and evaluation criteria
 
+The [language-design research agenda](agent-native-language-design.md)
+turns these candidates into falsifiable experiments and separates language,
+tool-access and combined-environment effects.
+
 | Area | Candidate approaches to compare | Evidence required before selection |
 | --- | --- | --- |
 | Syntax and grammar | Explicit delimiter blocks; indentation/layout blocks; declaration- or schema-oriented forms for common data transformations | Blinded agent completion, correction iterations, tool calls, model-token counts with the tokenizer named, parse/diagnostic error rates, human review |

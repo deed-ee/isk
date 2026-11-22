@@ -8,7 +8,7 @@ batch = Path(sys.argv[1])
 records = [json.loads(line) for line in (batch / "results.jsonl").read_text().splitlines()]
 print("| Task | Arm | First | Final | Seconds (median; range) | Total tokens (median; range) | Corrections | Used semantic ops |")
 print("|---|---|---:|---:|---:|---:|---:|---:|")
-for task in ("rename", "repair"):
+for task in ("rename", "repair", "parcel"):
     for group in ("text", "semantic"):
         rows = [r for r in records if r["task"]["id"] == "controller-"+task and r["candidate"] == group]
         if not rows:

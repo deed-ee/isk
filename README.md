@@ -4,7 +4,7 @@
 
 **An experimental, semantic-first programming language for autonomous coding agents.**
 
-[Quick start](#quick-start) · [Architecture](#compiler-architecture) · [Roadmap](ROADMAP.md) · [Benchmarks](benchmarks/README.md)
+[Quick start](#quick-start) · [Vision](docs/vision.md) · [Capability matrix](docs/capabilities.md) · [Architecture](#compiler-architecture) · [Roadmap](ROADMAP.md) · [Benchmarks](benchmarks/README.md)
 
 ## The idea
 
@@ -144,6 +144,12 @@ The [benchmark protocol](benchmarks/README.md) separates program measurements
 from agent outcomes such as correctness, time, context, and correction effort.
 The current GCD and coprimality pilot has reference runs for ISK, Rust, and
 Python. It does not yet establish an agent-productivity advantage.
+
+The [20-session controller pilot](benchmarks/results/2026-11-22-controller/README.md)
+held the language fixed. All first submissions passed. Median total tokens
+were about 23% lower for semantic rename and 4% higher for interlock repair;
+the repair sessions did not use the extra tools. The text arm lacked grep.
+This is preliminary tooling evidence, not a language or safety comparison.
 
 ## Contributing to ISK
 
