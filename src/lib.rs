@@ -1085,6 +1085,48 @@ impl<'a> CheckedProgram<'a> {
         })
     }
 
+    /// Compile a single harness for the explicit roots in declaration order.
+    /// The harness runs one root per invocation: 0 means true, 2 means false.
+    pub fn compile_test_harness(
+        &self,
+        roots: &[&str],
+    ) -> Result<(Vec<FunctionInfo>, String), String> {
+        use std::fmt::Write as _;
+
+        if roots.is_empty() {
+            return Err("at least one test root is required".to_owned());
+        }
+        let mut tests = Vec::new();
+        for name in roots {
+            let test = self
+                .inspect_function(name)
+                .map_err(|error| error.to_string())?;
+            if !test.parameters.is_empty() || test.result != "bool" {
+                return Err(format!(
+                    "test root `{name}` must have signature `fn {name}() -> bool`"
+                ));
+            }
+            tests.push(test);
+        }
+        tests.sort_unstable_by_key(|test| test.id);
+        tests.dedup_by_key(|test| test.id);
+
+        let mut rust = String::from("mod isk_test_program {\n");
+        rust.push_str(&generate(&self.program));
+        rust.push_str("pub(super) fn run(index: usize) -> bool {\nmatch index {\n");
+        for (index, test) in tests.iter().enumerate() {
+            writeln!(rust, "{index} => self::isk_fn_{}(),", test.name).unwrap();
+        }
+        rust.push_str("_ => unreachable!(),\n}\n}\n}\n");
+        rust.push_str(
+            "fn main() {\n\
+             let index = std::env::args().nth(1).unwrap().parse().unwrap();\n\
+             if !isk_test_program::run(index) { std::process::exit(2); }\n\
+             }\n",
+        );
+        Ok((tests, rust))
+    }
+
     pub fn inspect_function<'n>(&self, name: &'n str) -> Result<FunctionInfo, UnknownFunction<'n>> {
         let signature = self.function_signature(name)?;
         let function = &self.program.functions[signature.id.0];
