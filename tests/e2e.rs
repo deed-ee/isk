@@ -31,6 +31,20 @@ impl TestDir {
 }
 
 #[test]
+fn cli_runs_with_rust_keywords_as_binding_names() {
+    let dir = TestDir::new("binding-names");
+    fs::write(
+        dir.0.join("bindings.isk"),
+        "fn increment(self: u64) -> u64 { let match = self + 1; match }\n\
+         fn main() { print(increment(41)) }",
+    )
+    .unwrap();
+    let run = dir.isk("run", "bindings.isk");
+    assert!(run.status.success(), "{run:?}");
+    assert_eq!(String::from_utf8(run.stdout).unwrap().trim(), "42");
+}
+
+#[test]
 fn cli_previews_valid_renames_and_does_not_touch_the_input() {
     let dir = TestDir::new("rename");
     let source = "fn helper(n: u64) -> u64 { n + 1 }\n\
