@@ -97,7 +97,32 @@ def trace(source):
         return call(path, "run", "main.isk")
 
 
+PARCEL = """Rename the parcel pricing helper rate_band to weight_tier in main.isk.
+Preserve all other bytes and behavior. Submit main.isk and callers.json
+(a JSON array of distinct direct caller names in declaration order).
+Public boolean tests: verify_small, verify_pair, verify_cover, verify_bulk."""
+SEARCH = """Both groups also have ["grep",literal] (all matching numbered lines),
+["lines",first,last] (inclusive 1-based), ["write",source] (ordinary whole-file
+edit), ["test",root,...] (isk test)."""
+
+
+def parcel_grade(work):
+    # Independent frozen answer key: declaration and five callee positions.
+    # The parameter and local named rate_band are not calls.
+    data = (HERE / "parcel.isk").read_bytes()
+    expected = data.replace(b"rate_band(", b"weight_tier(")
+    assert data.count(b"rate_band(") == 6
+    try:
+        callers = json.loads((work / "callers.json").read_text())
+    except (FileNotFoundError, ValueError):
+        callers = None
+    return {"source_ok": (work / "main.isk").read_bytes() == expected,
+            "callers_ok": callers == ["retail", "wholesale", "insured", "pair_fee"]}
+
+
 def grade(task, work):
+    if task == "parcel":
+        return parcel_grade(work)
     if task == "rename":
         p = subprocess.run([sys.executable, ORACLE / "evaluate.py", "grade", work], capture_output=True)
         return json.loads(p.stdout)
@@ -105,8 +130,20 @@ def grade(task, work):
     return {"demo_ok": trace(source) == DEMO, "transitions_ok": trace(matrix(source)) == MATRIX}
 
 
-def enact(action, work, semantic, counters):
+def enact(action, work, semantic, counters, parcel=False):
     match action:
+        case ["grep", str(needle)] if parcel:
+            return [[n, s] for n, s in enumerate((work / "main.isk").read_text().splitlines(), 1) if needle in s]
+        case ["lines", int(first), int(last)] if parcel and 1 <= first <= last:
+            return (work / "main.isk").read_text().splitlines()[first-1:last]
+        case ["write", str(source)] if parcel:
+            (work / "main.isk").write_text(source)
+            return "written"
+        case ["test", *roots] if parcel and roots and all(isinstance(r,str) for r in roots):
+            counters["test_cycles"] += 1
+            code, output = call(work, "test", "main.isk", *roots)
+            counters["failed_tests"] += bool(code)
+            return code, output
         case ["read"]:
             return (work / "main.isk").read_text()
         case ["replace", str(old), str(new)] if old:
@@ -149,11 +186,17 @@ def trial(task, group, number, out):
     error = None
     accounted = True
     tools = ["read", "replace", "callers", "check", "run", "submit"] + (["inspect", "rename"] if semantic else [])
+    if task == "parcel":
+        tools += ["grep", "lines", "write", "test"]
     with tempfile.TemporaryDirectory() as tmp:
         workspace = Path(tmp) / "participant"
         if task == "rename":
             subprocess.run([sys.executable, ORACLE / "evaluate.py", "prepare", workspace], check=True)
             assignment = (workspace / "task.md").read_text()
+        elif task == "parcel":
+            workspace.mkdir()
+            assignment = PARCEL + "\n" + SEARCH
+            (workspace / "main.isk").write_bytes((HERE / "parcel.isk").read_bytes())
         else:
             workspace.mkdir()
             assignment = REPAIR
@@ -209,7 +252,7 @@ def trial(task, group, number, out):
                         submissions.append(verdict)
                         replies.append(verdict)
                         break
-                    replies.append(enact(a, workspace, semantic, counters))
+                    replies.append(enact(a, workspace, semantic, counters, task == "parcel"))
                 with (folder / "turns.jsonl").open("a") as log:
                     print(json.dumps(dict(turn=turns, response=text, replies=replies, tokens=usage.copy())), file=log)
                 if submissions and (all(submissions[-1].values()) or len(submissions) == 2):
@@ -244,6 +287,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("isk", type=Path, help="absolute CLI built at PIN (see README)")
     parser.add_argument("output", type=Path, help="new output directory")
+    parser.add_argument("--parcel", action="store_true", help="fair text baseline on the new multi-caller task")
     args = parser.parse_args()
     ISK = args.isk.resolve(strict=True)
     SYSROOT = Path(subprocess.check_output(["rustc","--print","sysroot"],text=True).strip())
@@ -257,7 +301,7 @@ if __name__ == "__main__":
     out.mkdir()
     (out / "binary.sha256").write_text(hashlib.sha256(ISK.read_bytes()).hexdigest()+"\n")
     rng = random.Random(SEED)
-    for task in ["rename", "repair"]:
+    for task in (["parcel"] if args.parcel else ["rename", "repair"]):
         order = [(g,n) for n in range(1,6) for g in ["text","semantic"]]
         rng.shuffle(order)
         for group, number in order:
