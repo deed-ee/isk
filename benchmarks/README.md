@@ -105,6 +105,15 @@ language and tooling effects. No focused-selection advantage has been measured.
 
 ## History
 
+![Median total tokens, text versus semantic arm: controller rename 2,012 vs 1,544; controller repair 1,988 vs 2,068; parcel rename 2,902 vs 1,710.](results/agent-pilot-tokens.svg)
+
+All 30 first submissions passed. Compare bars **within a task**: the parcel
+pilot offered search and range reads in both arms; the controller pilot did
+not. On controller repair, no session used the extra semantic operations.
+These are tooling comparisons on one model, not language rankings. See the
+linked reports below for distributions, timings, submissions and limitations.
+Regenerate the chart from the published JSONL with `python3 benchmarks/results/plot_tokens.py`.
+
 - [2026-11-21 reference baseline](results/2026-11-21-reference.jsonl):
   three repetitions per task and language, 18 records total. These are
   correctness and startup/build timing measurements, not authoring results.
