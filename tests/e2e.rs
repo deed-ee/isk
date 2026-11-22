@@ -453,6 +453,26 @@ fn controller_showcase_runs_guarded_transitions_and_latches_faults() {
 }
 
 #[test]
+fn cli_respects_arithmetic_precedence_and_grouping() {
+    let dir = TestDir::new("arithmetic-precedence");
+    let source = "arithmetic-precedence.isk";
+    fs::write(
+        dir.0.join(source),
+        "fn main() {
+    let ungrouped = print(2 + 3 * 4);
+    print((2 + 3) * 4)
+}
+",
+    )
+    .unwrap();
+
+    let run = dir.isk("run", source);
+    assert_eq!(run.status.code(), Some(0), "{run:?}");
+    let stdout = String::from_utf8(run.stdout).unwrap();
+    assert_eq!(stdout.lines().collect::<Vec<_>>(), ["14", "20"]);
+}
+
+#[test]
 fn cli_builds_literal_arithmetic_and_preserves_u64_values() {
     let dir = TestDir::new("literal-arithmetic");
     fs::write(
