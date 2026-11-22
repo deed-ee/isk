@@ -106,11 +106,12 @@ missing capabilities and record trade-offs before adopting language changes.
 
 ## 6. Shorten the verification feedback loop
 
-The single-file selector suggests test roots from resolved calls; it does not
-discover or run tests. Next, prototype deterministic test execution and
-structured failure reports linked to symbols. Evaluate coverage, properties,
-and caching only after the simpler workflow is measured. Keep the full
-regression suite in CI regardless of local test selection.
+The single-file selector suggests test roots from resolved calls. A separate
+[prototype runner](docs/cli.md#run-explicit-tests-experimental) executes
+explicitly named roots and reports results linked to checked symbols. Neither
+discovers tests. Evaluate coverage, properties, and caching only after the
+simpler workflow is measured. Keep the full regression suite in CI regardless
+of local test selection.
 
 **Done when:** seeded-change experiments compare focused-first and full-first
 verification on the same ISK revision, report affected tests missed against

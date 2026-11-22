@@ -124,3 +124,23 @@ plain text.
 
 The command never runs tests. A focused result is a suggestion for early
 feedback, not a guarantee of correctness.
+
+## Run explicit tests (experimental)
+
+`isk test <file.isk> <test-root> ...` runs one or more explicitly named
+`fn name() -> bool` functions. The source must still contain a valid `main`,
+but the runner does not invoke it as the entry point. Names are validated
+before building; repeated roots run once, in declaration order. The runner
+compiles one temporary harness and starts a fresh process for each root.
+
+Stdout contains one JSON report with `schema_version: 1`, `ok`, and `tests`.
+Each test contains `symbol` (snapshot-local `id`, `name`, and half-open UTF-8
+`declaration` range), `status` (`passed`, `returned_false`, or `runtime_error`),
+`exit_code` (null if unavailable), and captured `stdout` and `stderr`. A
+failure does not skip later roots. Exit status is 0 only when all tests pass.
+Invalid source uses the same stderr JSON as `check --json`; usage, invalid
+roots, and backend errors go to stderr without a test report.
+
+This command does not discover tests or interpret selector fallbacks. Run the
+full suite when the affected roots are uncertain. There is no timeout or
+sandbox; run only trusted source and stop a nonterminating run yourself.

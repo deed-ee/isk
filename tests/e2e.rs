@@ -286,6 +286,71 @@ fn cli_suggests_transitive_test_roots_or_requests_full_verification() {
 }
 
 #[test]
+fn cli_runs_explicit_tests_and_reports_results_by_symbol() {
+    let dir = TestDir::new("test-roots");
+    let source = concat!(
+        "fn fails() -> bool { false }\n",
+        "fn crashes() -> bool { 1 / 0 == 0 }\n",
+        "fn passes() -> bool { let logged = print(42); true }\n",
+        "fn main() { print(99) }\n",
+    );
+    fs::write(dir.0.join("suite.isk"), source).unwrap();
+    let run = |roots: &[&str]| {
+        dir.command("test", "suite.isk")
+            .args(roots)
+            .output()
+            .unwrap()
+    };
+    let all = run(&["passes", "crashes", "fails", "passes"]);
+    assert_eq!(all.status.code(), Some(1), "{all:?}");
+    assert!(all.stderr.is_empty());
+    let report: serde_json::Value = serde_json::from_slice(&all.stdout).unwrap();
+    assert_eq!(report["schema_version"], 1);
+    assert_eq!(report["ok"], false);
+    let tests = report["tests"].as_array().unwrap();
+    assert_eq!(tests.len(), 3);
+    for (id, (name, status)) in [
+        ("fails", "returned_false"),
+        ("crashes", "runtime_error"),
+        ("passes", "passed"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let start = source.find(name).unwrap();
+        assert_eq!(
+            tests[id]["symbol"],
+            serde_json::json!({
+                "id": id, "name": name, "declaration": {"start": start, "end": start + name.len()}
+            })
+        );
+        assert_eq!(tests[id]["status"], status);
+    }
+    assert!(tests[1]["stderr"]
+        .as_str()
+        .unwrap()
+        .contains("ISK division by zero"));
+    assert_eq!(tests[2]["stdout"].as_str().unwrap().trim_end(), "42");
+
+    let passed = run(&["passes"]);
+    assert_eq!(passed.status.code(), Some(0), "{passed:?}");
+    let report: serde_json::Value = serde_json::from_slice(&passed.stdout).unwrap();
+    assert_eq!(report["ok"], true);
+    assert_eq!(report["tests"].as_array().unwrap().len(), 1);
+
+    for (roots, diagnostic) in [
+        (&["passes", "missing"][..], "unknown function `missing`"),
+        (&["passes", "main"][..], "must have signature"),
+    ] {
+        let invalid = run(roots);
+        assert_eq!(invalid.status.code(), Some(1), "{invalid:?}");
+        assert!(invalid.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&invalid.stderr).contains(diagnostic));
+    }
+    assert!(!dir.0.join(".isk-build").exists());
+}
+
+#[test]
 fn cli_plans_and_applies_a_validated_rename_workflow() {
     let dir = TestDir::new("rename-workflow");
     let source = concat!(

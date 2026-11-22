@@ -965,6 +965,37 @@ pub fn compile(source: &str) -> Result<String, String> {
     Ok(generate(&CheckedProgram::new(source)?.program))
 }
 
+pub struct TestRoot<'a> {
+    pub id: usize,
+    pub name: &'a str,
+    pub declaration: Range<usize>,
+}
+
+/// Build a Rust driver from the same snapshot used to validate the roots.
+pub fn compile_test_harness<'a>(
+    program: &'a CheckedProgram<'_>,
+    roots: &[&str],
+) -> Result<(Vec<TestRoot<'a>>, String), String> {
+    use std::fmt::Write as _;
+    let tests = program.test_roots(roots)?;
+    let mut rust = String::from("mod isk_test_program {\n");
+    rust.push_str(&generate(&program.program));
+    rust.push_str("pub(super) fn run(index: usize) -> bool {\nmatch index {\n");
+    for (index, test) in tests.iter().enumerate() {
+        write!(rust, "{index} => self::").unwrap();
+        emit_function_name(test.name, &mut rust);
+        rust.push_str("(),\n");
+    }
+    rust.push_str("_ => unreachable!(),\n}\n}\n}\n");
+    rust.push_str(
+        "fn main() {\n\
+         let index = std::env::args().nth(1).unwrap().parse().unwrap();\n\
+         if !isk_test_program::run(index) { std::process::exit(2); }\n\
+         }\n",
+    );
+    Ok((tests, rust))
+}
+
 /// A validated snapshot of one source file, independent of a frontend or backend.
 pub struct CheckedProgram<'a> {
     source: &'a str,
@@ -1088,6 +1119,35 @@ impl<'a> CheckedProgram<'a> {
             program,
             semantics,
         })
+    }
+
+    /// Resolve explicit zero-argument boolean roots in declaration order.
+    pub fn test_roots(&self, roots: &[&str]) -> Result<Vec<TestRoot<'_>>, String> {
+        if roots.is_empty() {
+            return Err("at least one test root is required".to_owned());
+        }
+        let mut tests = Vec::new();
+        for name in roots {
+            let signature = self
+                .function_signature(name)
+                .map_err(|error| error.to_string())?;
+            if !signature.params.is_empty() || signature.result != Type::Bool {
+                return Err(format!(
+                    "test root `{name}` must have signature `fn {name}() -> bool`"
+                ));
+            }
+            let id = signature.id.0;
+            let function = &self.program.functions[id];
+            tests.push(TestRoot {
+                id,
+                name: &function.name,
+                declaration: function.name_offset..function.name_offset + function.name.len(),
+            });
+        }
+        tests.sort_unstable_by_key(|test| test.id);
+        tests.dedup_by_key(|test| test.id);
+
+        Ok(tests)
     }
 
     pub fn inspect_function<'n>(&self, name: &'n str) -> Result<FunctionInfo, UnknownFunction<'n>> {
