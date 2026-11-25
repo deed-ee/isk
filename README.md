@@ -71,8 +71,9 @@ the supported language subset.
 
 To create a runnable starter, use `cargo run -- new my-application`. Run its
 `my-application/src/main.isk` with the same CLI commands as the examples.
-See the [project model](docs/projects.md) for the current layout and proposed
-manifest and workspace support.
+See the [project model](docs/projects.md) for the minimal `isk.toml` format
+and planned workspace support. For a working project-directory example, run
+`cargo run -- run showcase/controller`.
 
 ## Compiler architecture
 

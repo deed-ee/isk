@@ -38,6 +38,7 @@ def timed(command, cwd, timeout=TIMEOUT, env=None):
 def revision():
     files = [
         "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "src/lib.rs", "src/main.rs",
+        "src/project.rs",
         "benchmarks/pilot.py", "benchmarks/result.schema.json", "benchmarks/README.md",
         "benchmarks/gcd/cases.json",
         *[

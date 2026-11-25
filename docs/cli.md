@@ -3,12 +3,16 @@
 `isk new <directory>` creates a starter application at `src/main.isk` and
 prints its path. The destination must not already exist and its parent
 must exist. Run the generated source with `isk run <path-to-main.isk>`.
-See the [project model](projects.md) for proposed manifest support.
+See the [project model](projects.md) for the minimal manifest format.
 
 `isk check <file.isk>` validates source without invoking `rustc` or writing
 build artifacts. `isk build <file.isk>` writes generated Rust and the native
 executable to `.isk-build/` and prints the executable's path. `isk run
 <file.isk>` builds and executes the program.
+
+`check`, `build`, `run`, and `inspect` also accept an explicitly supplied
+directory containing `isk.toml`. They operate on that manifest's entry file.
+Build output stays in `.isk-build/` relative to the current working directory.
 
 The bootstrap supports `u64`, `bool`, functions, local `let`/`mut` bindings,
 arithmetic, comparisons, `if` expressions, calls, and `print` for integers and

@@ -7,8 +7,10 @@ use std::process::{self, Command};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
+mod project;
+
 fn usage() -> &'static str {
-    "Usage: isk new <directory>\n       isk check <file.isk> [--diagnostics=tsv|--json]\n       isk <build|run> <file.isk>\n       isk inspect <file.isk> <function> [--callers|--json]\n       isk rename <file.isk> <old-name> <new-name> [--plan | --apply <snapshot>]\n       isk affected-tests <file.isk> <changed-function> [<test-root> ...]"
+    "Usage: isk new <directory>\n       isk check <file.isk|project-directory> [--diagnostics=tsv|--json]\n       isk <build|run> <file.isk|project-directory>\n       isk inspect <file.isk|project-directory> <function> [--callers|--json]\n       isk rename <file.isk> <old-name> <new-name> [--plan | --apply <snapshot>]\n       isk affected-tests <file.isk> <changed-function> [<test-root> ...]"
 }
 
 fn new_project(root: &Path) -> Result<(), String> {
@@ -241,6 +243,10 @@ fn execute() -> Result<(), String> {
         }
         return new_project(&path);
     }
+    let path = match command.as_deref() {
+        Some("check" | "build" | "run" | "inspect") => project::entry_path(path)?,
+        _ => path,
+    };
     if command.as_deref() == Some("affected-tests") {
         let changed = args
             .next()

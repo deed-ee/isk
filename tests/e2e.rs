@@ -75,6 +75,79 @@ impl Drop for TestDir {
 }
 
 #[test]
+fn cli_uses_the_declared_project_entry() {
+    let dir = TestDir::new("project-entry");
+    fs::create_dir(dir.0.join("app")).unwrap();
+    fs::write(
+        dir.0.join("app/isk.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.1.0\"\nentry = \"start.isk\"\n",
+    )
+    .unwrap();
+    fs::write(dir.0.join("app/start.isk"), "fn main() { print(17) }").unwrap();
+    fs::write(dir.0.join("app/unused.isk"), "not valid ISK").unwrap();
+    let check = dir.command("check", "app").arg("--json").output().unwrap();
+    assert!(check.status.success(), "{check:?}");
+    let inspect = dir
+        .command("inspect", "app")
+        .args(["main", "--json"])
+        .output()
+        .unwrap();
+    assert!(inspect.status.success(), "{inspect:?}");
+    let info: serde_json::Value = serde_json::from_slice(&inspect.stdout).unwrap();
+    assert_eq!(info["function"]["name"], "main");
+    let build = dir.isk("build", "app");
+    assert!(build.status.success(), "{build:?}");
+    let run = dir.isk("run", "app");
+    assert!(run.status.success(), "{run:?}");
+    assert_eq!(String::from_utf8_lossy(&run.stdout).trim_end(), "17");
+}
+
+#[test]
+fn cli_rejects_invalid_project_manifests_and_entries() {
+    let dir = TestDir::new("invalid-project");
+    fs::create_dir(dir.0.join("app")).unwrap();
+    let manifest = dir.0.join("app/isk.toml");
+    for (contents, expected) in [
+        (
+            "[package]\nname = \"app\"\nversion = \"bad\"",
+            "invalid package.version",
+        ),
+        (
+            "[package]\nname = \"app\"\nversion = \"1.0.0\"\nextra = true",
+            "unknown package key `extra`",
+        ),
+        (
+            "[package]\nname = \"app\"\nversion = \"1.0.0\"\nentry = \"../outside.isk\"",
+            "without `..`",
+        ),
+        (
+            "[package]\nname = \"app\"\nversion = \"1.0.0\"",
+            "cannot resolve entry",
+        ),
+    ] {
+        fs::write(&manifest, contents).unwrap();
+        let check = dir.isk("check", "app");
+        assert_eq!(check.status.code(), Some(1), "{check:?}");
+        let stderr = String::from_utf8_lossy(&check.stderr);
+        assert!(
+            stderr.contains("ISK-PROJECT-001") && stderr.contains(expected),
+            "{stderr}"
+        );
+    }
+    #[cfg(unix)]
+    {
+        let outside = dir.0.join("outside.isk");
+        fs::write(&outside, "fn main() {}").unwrap();
+        fs::create_dir(dir.0.join("app/src")).unwrap();
+        std::os::unix::fs::symlink(outside, dir.0.join("app/src/main.isk")).unwrap();
+        let run = dir.isk("run", "app");
+        assert_eq!(run.status.code(), Some(1), "{run:?}");
+        assert!(String::from_utf8_lossy(&run.stderr).contains("inside the project"));
+        assert!(!dir.0.join(".isk-build").exists());
+    }
+}
+
+#[test]
 fn cli_creates_and_runs_a_starter_without_overwriting_existing_projects() {
     let dir = TestDir::new("new-project");
     let created = dir.isk("new", "my app");
@@ -435,7 +508,7 @@ fn cli_checks_and_runs_repository_examples() {
 #[test]
 fn controller_showcase_runs_guarded_transitions_and_latches_faults() {
     let dir = TestDir::new("controller");
-    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("showcase/controller/src/main.isk");
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("showcase/controller");
     let run = dir.isk("run", source);
     assert_eq!(run.status.code(), Some(0), "{run:?}");
     assert!(run.stderr.is_empty(), "{run:?}");

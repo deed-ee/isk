@@ -9,7 +9,7 @@ belongs to ISK, not Cargo, an IDE, or an AI platform.
 `isk new <directory>` creates a new directory with a runnable `src/main.isk`.
 The parent must already exist; the command refuses existing destinations.
 It does not create a manifest, lockfile, cache, or agent-specific prompt file.
-Commands still take an explicit source file:
+Commands still accept an explicit source file:
 
 ```sh
 cargo run -- new my-application
@@ -18,10 +18,10 @@ cargo run -- run my-application/src/main.isk
 ```
 
 The [controller](../showcase/controller/src/main.isk) uses the same layout
-without a manifest. The CLI regression suite runs both the controller and a
-generated starter.
+with an `isk.toml` manifest. The CLI regression suite runs both the controller
+and a generated starter.
 
-## Proposed project format
+## Minimal project format
 
 ```text
 my-application/
@@ -31,7 +31,8 @@ my-application/
 └── README.md
 ```
 
-The first manifest-aware application slice would recognize only:
+Pass a project directory explicitly to `check`, `build`, `run`, or `inspect`.
+The CLI reads a regular `isk.toml` file there and recognizes only:
 
 ```toml
 [package]
@@ -45,9 +46,9 @@ version (not a resolver constraint), and `entry` is an optional relative
 path defaulting to `src/main.isk`. Resolve it from the manifest directory
 and reject missing entries or paths escaping that directory, including
 resolved symlink targets. Report unknown keys and invalid values rather
-than silently ignoring them. This is a proposal; the current CLI does not
-read `isk.toml`. A README is recommended, and `AGENTS.md` is never a build
-requirement.
+than silently ignoring them. Manifest errors are reported as `ISK-PROJECT-001`
+on stderr, including when a structured source diagnostic format is requested.
+A README is recommended, and `AGENTS.md` is never a build requirement.
 
 Add application/library kinds once libraries can omit `main`; add explicit
 local dependencies and members once module visibility and graph resolution
@@ -75,8 +76,7 @@ dependencies, effects, contracts, test relationships, and change impact as the
 compiler can substantiate them. Never report unknown information as absent.
 Keep the core view independent of CLI, MCP, and the Rust backend.
 
-Keep the current explicit file commands. Once project loading exists, design
-a project-root mode for `check`, `build`, `run`, and `inspect`. Add `init`
+Keep the explicit file commands alongside project-directory mode. Add `init`
 only when there is meaningful metadata to initialize, `add`/`remove` only
 with validated dependency edits, and `impact`, `test`, and `verify` only
 when their underlying operations work. Start verification with deterministic
