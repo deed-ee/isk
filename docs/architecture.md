@@ -93,8 +93,9 @@ defines prerequisites, metadata evidence, and supply-chain trust boundaries.
 The [project model](projects.md) separates filesystem and manifest loading
 from compiler-derived semantics. Applications should expose a compact
 project summary and targeted queries over the same shared API as single-file
-operations. The current scaffold is a directory convention, not a manifest
-loader or workspace resolver.
+operations. The CLI loads one entry from an explicit directory, using the
+scaffold convention or an optional manifest. Workspace resolution is not
+implemented.
 
 ## Incremental evolution
 

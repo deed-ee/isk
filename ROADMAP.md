@@ -182,10 +182,10 @@ be verified.
 ## 9. Make application projects predictable
 
 The first [project scaffold](docs/projects.md) creates a runnable
-`src/main.isk` without configuration. The controller demonstrates this
-layout. `check` and `run` resolve its single entry from an explicit root.
-Next, evaluate whether configurable entries justify a minimal manifest
-before adding multi-module or workspace features. Treat project discovery
+`src/main.isk` without configuration. `check`, `build`, `run`, and `inspect`
+resolve a single entry from an explicit root, optionally configured by a
+minimal manifest as shown by the controller. Evaluate the manifest against
+the convention-only baseline before extending it. Treat project discovery
 and verification as first-class parts of the shared semantic API.
 
 **Done for the first project-aware slice when:** the CLI can check and run

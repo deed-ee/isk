@@ -71,8 +71,9 @@ the supported language subset.
 
 To create a runnable starter, use `cargo run -- new my-application`. Run its
 starter with `cargo run -- check my-application` and `cargo run -- run my-application`.
-See the [project model](docs/projects.md) for the current layout and proposed
-manifest and workspace support.
+See the [project model](docs/projects.md) for the optional `isk.toml` format
+and planned workspace support. Try `cargo run -- run showcase/controller` for
+a project with a manifest.
 
 ## Compiler architecture
 

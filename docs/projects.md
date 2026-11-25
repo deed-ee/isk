@@ -9,7 +9,8 @@ belongs to ISK, not Cargo, an IDE, or an AI platform.
 `isk new <directory>` creates a new directory with a runnable `src/main.isk`.
 The parent must already exist; the command refuses existing destinations.
 It does not create a manifest, lockfile, cache, or agent-specific prompt file.
-`check` and `run` accept an explicit project directory or source file:
+`check`, `build`, `run`, and `inspect` accept an explicit project directory
+or source file:
 
 ```sh
 cargo run -- new my-application
@@ -18,15 +19,14 @@ cargo run -- run my-application
 ```
 
 The [controller](../showcase/controller/src/main.isk) uses the same layout
-without a manifest. The CLI regression suite runs both the controller and a
-generated starter.
+with an `isk.toml` manifest. The CLI regression suite runs both the controller
+and a generated starter.
 
-For a directory, the loader resolves only `src/main.isk`. The entry must
-be a regular file inside the canonical project root. Missing entries and
-escaping symlinks are errors; no manifest, ancestor or sibling is searched.
-Other commands still take explicit files. See [ADR 0003](adr/0003-project-root.md).
+Without `isk.toml`, the loader resolves only `src/main.isk`. There is no
+ancestor or sibling search. Other source commands still take explicit files.
+See [ADR 0003](adr/0003-project-root.md).
 
-## Proposed project format
+## Optional manifest
 
 ```text
 my-application/
@@ -36,7 +36,8 @@ my-application/
 └── README.md
 ```
 
-The first manifest-aware application slice would recognize only:
+If `isk.toml` exists, it must be a regular file, not a symlink. The CLI
+recognizes only:
 
 ```toml
 [package]
@@ -47,12 +48,12 @@ entry = "src/main.isk"
 
 `name` identifies the package locally, `version` is a declared semantic
 version (not a resolver constraint), and `entry` is an optional relative
-path defaulting to `src/main.isk`. Resolve it from the manifest directory
-and reject missing entries or paths escaping that directory, including
-resolved symlink targets. Report unknown keys and invalid values rather
-than silently ignoring them. This is a proposal; the current CLI does not
-read `isk.toml`. A README is recommended, and `AGENTS.md` is never a build
-requirement.
+`.isk` path without `..`, defaulting to `src/main.isk`. With or without a manifest,
+the entry must resolve to a regular file inside the canonical project root.
+An invalid manifest is an error even if the default entry exists. Unknown
+keys and invalid values are reported as plain-text `ISK-PROJECT-001` errors
+on stderr, even when requesting structured source diagnostics.
+A README is recommended, and `AGENTS.md` is never a build requirement.
 
 Add application/library kinds once libraries can omit `main`; add explicit
 local dependencies and members once module visibility and graph resolution
@@ -80,12 +81,12 @@ dependencies, effects, contracts, test relationships, and change impact as the
 compiler can substantiate them. Never report unknown information as absent.
 Keep the core view independent of CLI, MCP, and the Rust backend.
 
-Keep the current explicit file commands. Evaluate extending project-root
-mode to `build` and `inspect` when needed. Add `init`
+Keep the explicit file commands alongside project-directory mode. Add `init`
 only when there is meaningful metadata to initialize, `add`/`remove` only
-with validated dependency edits, and `impact`, `test`, and `verify` only
-when their underlying operations work. Start verification with deterministic
-test discovery and structured diagnostics; a future `verify --affected` must
+with validated dependency edits, and `impact` and `verify` only when their
+underlying operations work. Today, `test` takes an explicit source file
+and named test roots. Build on it with deterministic discovery and
+structured diagnostics; a future `verify --affected` must
 fall back to broader coverage when impact is uncertain. CI still runs full
 regressions. Caches must not change results.
 

@@ -12,12 +12,12 @@ functions, and branches. `transition(state, event, interlock_clear)` is pure;
 `main` feeds it a fixed event sequence and prints the resulting state IDs.
 
 ```sh
-cargo run -- run showcase/controller/src/main.isk
+cargo run -- run showcase/controller
 cargo test --locked --test e2e controller_showcase
 ```
 
 The controller uses the [application layout](../docs/projects.md) with one
-source file and no manifest. The repository's CLI suite verifies its output.
+source file and a minimal manifest. The repository's CLI suite verifies its output.
 
 | State | ID | Event | ID |
 | --- | ---: | --- | ---: |
