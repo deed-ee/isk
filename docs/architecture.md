@@ -3,16 +3,19 @@
 If programming languages were invented primarily for agents, text would not
 have to be their only interface. ISK treats human-readable source as one
 representation of a program and checked semantics as the basis for understanding,
-editing, and verifying it. Eight pillars evolve together:
+editing, and verifying it. The [permanent vision](vision.md) is served by
+seven connected pillars (the shared API and its clients are one pillar,
+with their dependency boundary preserved):
 
-1. Agent-native language design.
-2. Semantic-first program representation.
-3. A shared, protocol-independent semantic API.
-4. Agent-oriented CLI and optional MCP interfaces.
-5. Efficient compilation, testing, and verification.
-6. Empirical agent-efficiency evaluation.
-7. Native performance, safety, and correctness.
-8. Agent-native libraries, package intelligence, and supply-chain security.
+| Pillar | Responsibility |
+|---|---|
+| A — Agent-native language research | Develop ISK's own types, control flow, errors, contracts and concurrency; test alternatives to the bootstrap. |
+| B — Semantic program representation | Compiler-owned identities, checked relationships and eventually directly editable representations. |
+| C — Agent development interfaces | A shared protocol-independent semantic API; CLI and optional MCP consume it. |
+| D — Compiler-integrated verification | Diagnostics, tests, impact and incremental checks grounded in checked semantics. |
+| E — Agent-native libraries and packages | Discover interfaces, integrate and version dependencies, distinguish security claims from enforcement. |
+| F — Agent-efficiency research | Measure complete changes against realistic alternatives; isolate language from tooling effects. |
+| G — Native performance and safety | Define observable guarantees and measure runtime/resource costs on the applications. |
 
 Agent-native verification is a permanent requirement across these pillars.
 Optimize the complete loop: understand, modify, validate, test, diagnose,
@@ -90,9 +93,9 @@ defines prerequisites, metadata evidence, and supply-chain trust boundaries.
 The [project model](projects.md) separates filesystem and manifest loading
 from compiler-derived semantics. Applications should expose a compact
 project summary and targeted queries over the same shared API as single-file
-operations. The CLI can load one declared entry point from an explicit
-directory; the scaffold remains manifest-free, and workspace resolution
-is not implemented.
+operations. The CLI loads one entry from an explicit directory, using the
+scaffold convention or an optional manifest. Workspace resolution is not
+implemented.
 
 ## Incremental evolution
 
@@ -121,9 +124,8 @@ only when the language or performance needs it.
    changed function to explicitly declared test roots. It returns focused
    suggestions or a machine-readable reason to run the full suite. It
    does not infer the change, discover tests, execute them, or prove coverage.
-2. **Next:** Pilot deterministic execution of named tests and typed failure
-   records with test ID, failure kind, expected and actual values where
-   available, source span, and relevant symbols. Test whether focused reruns
+2. **Experimental:** `isk test` runs explicitly named boolean roots and
+   reports per-symbol results. **Next:** test whether focused reruns
    and failure explanations reduce repair time and context. Keep contracts
    and invariants in scope without committing to test syntax.
 3. **Later:** Evaluate coverage-informed selection, boundary generation,
@@ -147,3 +149,22 @@ decision to keep, revise, or reject it. Use the
 Run correctness and short reference checks continuously; reserve expensive
 controlled agent trials for milestones. Do not ratify a language design on
 implementation convenience or unmeasured benefits.
+
+### Language innovation gate
+
+For a significant language feature, answer these ten questions in a lightweight
+ADR **before choosing the design**. Leave it provisional without evidence.
+
+1. Which observed agent-development problem does it solve?
+2. On what task do existing mechanisms fall short?
+3. What new meaning or invariant does it represent, apart from spelling?
+4. Which context, tool-call, error or verification measure should improve?
+5. What can the compiler actually enforce, and how is a violation diagnosed?
+6. What safety, runtime and memory constraints must hold?
+7. Which reproducible baseline, held-out task and oracle can test it?
+8. Could a tool over the existing language supply the same benefit?
+9. What complexity does it add to construction, comprehension, migration and maintenance?
+10. What result would justify acceptance, revision **or rejection**?
+
+Use [the research agenda](research/agent-native-language-design.md) for candidate
+experiments. Ordinary bug fixes, tests and maintenance do not need this gate.

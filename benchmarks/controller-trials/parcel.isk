@@ -1,0 +1,93 @@
+fn smaller(a: u64, b: u64) -> u64 {
+    if a < b { a } else { b }
+}
+
+fn rate_band(weight: u64) -> u64 {
+    if weight <= 2 {
+        1
+    } else {
+        if weight <= 10 { 2 } else { 3 }
+    }
+}
+
+fn distance_fee(zone: u64) -> u64 {
+    if zone == 0 {
+        0
+    } else {
+        if zone == 1 { 4 } else { 9 }
+    }
+}
+
+fn retail(weight: u64, zone: u64) -> u64 {
+    let band = rate_band(weight);
+    band * 5 + distance_fee(zone)
+}
+
+fn wholesale(weight: u64, count: u64) -> u64 {
+    let band = rate_band(weight);
+    if count == 0 { 0 } else { band * count + 2 }
+}
+
+fn fragile_fee(fragile: bool) -> u64 {
+    if fragile { 3 } else { 0 }
+}
+
+fn pickup_quote(weight: u64, fragile: bool) -> u64 {
+    let subtotal = retail(weight, 0);
+    subtotal + fragile_fee(fragile)
+}
+
+fn delivery_quote(weight: u64, zone: u64, fragile: bool) -> u64 {
+    let subtotal = retail(weight, zone);
+    subtotal + fragile_fee(fragile)
+}
+
+fn capped_total(rate_band: u64, cap: u64) -> u64 {
+    smaller(rate_band, cap)
+}
+
+fn insured(weight: u64, value: u64) -> u64 {
+    let rate_band = rate_band(weight);
+    capped_total(value, 100) + rate_band
+}
+
+fn pair_fee(first: u64, second: u64) -> u64 {
+    rate_band(first) + rate_band(second)
+}
+
+fn dispatch(weight: u64, zone: u64, value: u64) -> u64 {
+    let quote = delivery_quote(weight, zone, true);
+    quote + insured(weight, value)
+}
+
+fn is_light(weight: u64) -> bool {
+    weight <= 2
+}
+
+fn bulk_total(weight: u64, count: u64, zone: u64) -> u64 {
+    wholesale(weight, count) + distance_fee(zone)
+}
+
+fn verify_small() -> bool {
+    pickup_quote(2, false) == 5
+}
+
+fn verify_pair() -> bool {
+    pair_fee(2, 11) == 4
+}
+
+fn verify_cover() -> bool {
+    insured(7, 150) == 102
+}
+
+fn verify_bulk() -> bool {
+    bulk_total(10, 6, 1) == 18
+}
+
+fn main() {
+    let single = print(dispatch(3, 1, 80));
+    let pair = print(pair_fee(1, 15));
+    let bulk = print(bulk_total(12, 8, 2));
+    let light = print(is_light(2));
+    print(insured(7, 150))
+}

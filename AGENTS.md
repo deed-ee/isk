@@ -7,13 +7,17 @@ Design around how agents understand, construct, transform, and verify
 software, not around existing languages or text-first workflows. Treat
 human-readable source as one view of a semantic program. Let agents query and
 edit checked semantics instead of reconstructing them from text.
-Balance the eight permanent [engineering pillars](docs/architecture.md),
+ISK is an independent language, not a Rust dialect with agent tools.
+Use the [vision](docs/vision.md) and language innovation gate for major
+semantic decisions; routine fixes and tests do not need a research proposal.
+Balance the seven permanent [engineering pillars](docs/architecture.md),
 including a shared semantic API, agent interfaces, and efficient verification.
 
 - For significant language, compiler, tooling, or roadmap changes, state the
   agent benefit as a hypothesis. Record the baseline, measurable success
   criteria, correctness and runtime constraints, results, and limitations in
-  the relevant ADR. Keep unmeasured designs provisional.
+  the relevant ADR. For language changes, test whether comparable tooling
+  could provide the benefit without changing semantics. Keep unmeasured designs provisional.
 - Use the smallest useful implementation. Reuse the compiler's checked
   semantic information for agent tools, keep output machine-readable where
   practical, and validate edits before returning or writing them. Keep the

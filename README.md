@@ -4,7 +4,7 @@
 
 **An experimental, semantic-first programming language for autonomous coding agents.**
 
-[Quick start](#quick-start) · [Architecture](#compiler-architecture) · [Roadmap](ROADMAP.md) · [Benchmarks](benchmarks/README.md)
+[Quick start](#quick-start) · [Vision](docs/vision.md) · [Capability matrix](docs/capabilities.md) · [Architecture](#compiler-architecture) · [Roadmap](ROADMAP.md) · [Benchmarks](benchmarks/README.md)
 
 ## The idea
 
@@ -70,10 +70,10 @@ See the [CLI reference](docs/cli.md) for output formats, build artifacts, and
 the supported language subset.
 
 To create a runnable starter, use `cargo run -- new my-application`. Run its
-`my-application/src/main.isk` with the same CLI commands as the examples.
-See the [project model](docs/projects.md) for the minimal `isk.toml` format
-and planned workspace support. For a working project-directory example, run
-`cargo run -- run showcase/controller`.
+starter with `cargo run -- check my-application` and `cargo run -- run my-application`.
+See the [project model](docs/projects.md) for the optional `isk.toml` format
+and planned workspace support. Try `cargo run -- run showcase/controller` for
+a project with a manifest.
 
 ## Compiler architecture
 
@@ -145,6 +145,14 @@ The [benchmark protocol](benchmarks/README.md) separates program measurements
 from agent outcomes such as correctness, time, context, and correction effort.
 The current GCD and coprimality pilot has reference runs for ISK, Rust, and
 Python. It does not yet establish an agent-productivity advantage.
+
+The [20-session controller pilot](benchmarks/results/2026-11-22-controller/README.md)
+held the language fixed. All first submissions passed. Median total tokens
+were about 23% lower for semantic rename and 4% higher for interlock repair;
+the repair sessions did not use the extra tools. The text arm lacked grep.
+This is preliminary tooling evidence, not a language or safety comparison.
+See the [visual comparison and raw results](benchmarks/README.md#history)
+for both this pilot and its multi-caller rename follow-up with targeted search.
 
 ## Contributing to ISK
 

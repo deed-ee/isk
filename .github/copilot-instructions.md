@@ -1,6 +1,7 @@
 # ISK instructions for Copilot
 
-Follow [AGENTS.md](../AGENTS.md). ISK is designed for agents, not merely usable
+Follow [AGENTS.md](../AGENTS.md) and the [permanent vision](../docs/vision.md).
+ISK is an independent language designed for agents, not merely usable
 by agents. Build around checked semantic queries and validated edits, with
 human-readable source as one view. The semantic API must not depend on CLI,
 MCP, or Rust code generation. Preserve the working bootstrap without treating

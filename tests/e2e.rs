@@ -31,6 +31,20 @@ impl TestDir {
 }
 
 #[test]
+fn cli_runs_with_rust_keywords_as_binding_names() {
+    let dir = TestDir::new("binding-names");
+    fs::write(
+        dir.0.join("bindings.isk"),
+        "fn increment(self: u64) -> u64 { let match = self + 1; match }\n\
+         fn main() { print(increment(41)) }",
+    )
+    .unwrap();
+    let run = dir.isk("run", "bindings.isk");
+    assert!(run.status.success(), "{run:?}");
+    assert_eq!(String::from_utf8(run.stdout).unwrap().trim(), "42");
+}
+
+#[test]
 fn cli_previews_valid_renames_and_does_not_touch_the_input() {
     let dir = TestDir::new("rename");
     let source = "fn helper(n: u64) -> u64 { n + 1 }\n\
@@ -84,6 +98,8 @@ fn cli_uses_the_declared_project_entry() {
     )
     .unwrap();
     fs::write(dir.0.join("app/start.isk"), "fn main() { print(17) }").unwrap();
+    fs::create_dir(dir.0.join("app/src")).unwrap();
+    fs::write(dir.0.join("app/src/main.isk"), "fn main() { print(42) }").unwrap();
     fs::write(dir.0.join("app/unused.isk"), "not valid ISK").unwrap();
     let check = dir.command("check", "app").arg("--json").output().unwrap();
     assert!(check.status.success(), "{check:?}");
@@ -108,6 +124,7 @@ fn cli_rejects_invalid_project_manifests_and_entries() {
     fs::create_dir(dir.0.join("app")).unwrap();
     let manifest = dir.0.join("app/isk.toml");
     for (contents, expected) in [
+        ("[package", "invalid TOML"),
         (
             "[package]\nname = \"app\"\nversion = \"bad\"",
             "invalid package.version",
@@ -142,8 +159,57 @@ fn cli_rejects_invalid_project_manifests_and_entries() {
         std::os::unix::fs::symlink(outside, dir.0.join("app/src/main.isk")).unwrap();
         let run = dir.isk("run", "app");
         assert_eq!(run.status.code(), Some(1), "{run:?}");
-        assert!(String::from_utf8_lossy(&run.stderr).contains("inside the project"));
+        assert!(String::from_utf8_lossy(&run.stderr).contains("outside its project"));
         assert!(!dir.0.join(".isk-build").exists());
+        fs::remove_file(dir.0.join("app/src/main.isk")).unwrap();
+    }
+    fs::create_dir_all(dir.0.join("app/src")).unwrap();
+    fs::write(dir.0.join("app/src/main.isk"), "fn main() {}").unwrap();
+    fs::remove_file(&manifest).unwrap();
+    fs::create_dir(&manifest).unwrap();
+    let check = dir.isk("check", "app");
+    assert_eq!(check.status.code(), Some(1), "{check:?}");
+    assert!(String::from_utf8_lossy(&check.stderr).contains("expected a regular isk.toml"));
+}
+
+#[test]
+fn explicit_project_roots_use_only_the_scaffold_entry() {
+    let dir = TestDir::new("root");
+    assert!(dir.isk("new", "my app").status.success());
+    fs::write(dir.0.join("my app/broken.isk"), "not a program").unwrap();
+    let check = dir
+        .command("check", "my app")
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(check.status.success(), "{check:?}");
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&check.stdout).unwrap()["ok"],
+        true
+    );
+    let run = dir.isk("run", "my app");
+    assert!(run.status.success(), "{run:?}");
+    assert_eq!(String::from_utf8_lossy(&run.stdout).trim(), "42");
+    let controller = Path::new(env!("CARGO_MANIFEST_DIR")).join("showcase/controller");
+    let from_root = dir.isk("run", &controller);
+    assert!(from_root.status.success(), "{from_root:?}");
+    assert_eq!(
+        from_root.stdout,
+        dir.isk("run", controller.join("src/main.isk")).stdout
+    );
+    fs::remove_file(dir.0.join("my app/src/main.isk")).unwrap();
+    for command in ["check", "run"] {
+        let output = dir.isk(command, "my app");
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("main.isk"));
+    }
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink("../../outside.isk", dir.0.join("my app/src/main.isk")).unwrap();
+        fs::write(dir.0.join("outside.isk"), "fn main() {}").unwrap();
+        let output = dir.isk("check", "my app");
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("outside its project"));
     }
 }
 
@@ -173,6 +239,17 @@ fn cli_creates_and_runs_a_starter_without_overwriting_existing_projects() {
     let extra = dir.command("new", "unused").arg("extra").output().unwrap();
     assert_eq!(extra.status.code(), Some(1), "{extra:?}");
     assert!(!dir.0.join("unused").exists());
+
+    let destination = Path::new("missing").join("app");
+    let missing = dir.isk("new", &destination);
+    assert_eq!(missing.status.code(), Some(1), "{missing:?}");
+    assert!(missing.stdout.is_empty());
+    let stderr = String::from_utf8_lossy(&missing.stderr);
+    assert!(
+        stderr.contains(&format!("cannot create {}:", destination.display())),
+        "{stderr}"
+    );
+    assert!(!dir.0.join("missing").exists());
 }
 
 #[test]
@@ -247,7 +324,7 @@ fn cli_suggests_transitive_test_roots_or_requests_full_verification() {
          fn main() {}",
     )
     .unwrap();
-    for (args, expected) in [
+    for (args, expected, expected_json) in [
         (
             &[
                 "helper",
@@ -257,13 +334,27 @@ fn cli_suggests_transitive_test_roots_or_requests_full_verification() {
                 "test_direct",
             ][..],
             "scope\tfocused\ntest\ttest_indirect\ntest\ttest_direct",
+            serde_json::json!({"scope": "focused", "tests": ["test_indirect", "test_direct"]}),
         ),
-        (&["helper"], "scope\tfull\tno-roots"),
-        (&["removed", "test_direct"], "scope\tfull\tunknown-change"),
-        (&["helper", "unmapped"], "scope\tfull\tunknown-root"),
+        (
+            &["helper"],
+            "scope\tfull\tno-roots",
+            serde_json::json!({"scope": "full", "reason": "no-roots"}),
+        ),
+        (
+            &["removed", "test_direct"],
+            "scope\tfull\tunknown-change",
+            serde_json::json!({"scope": "full", "reason": "unknown-change"}),
+        ),
+        (
+            &["helper", "unmapped"],
+            "scope\tfull\tunknown-root",
+            serde_json::json!({"scope": "full", "reason": "unknown-root"}),
+        ),
         (
             &["helper", "test_independent"],
             "scope\tfull\tno-reachable-root",
+            serde_json::json!({"scope": "full", "reason": "no-reachable-root"}),
         ),
     ] {
         let output = dir
@@ -277,6 +368,109 @@ fn cli_suggests_transitive_test_roots_or_requests_full_verification() {
             String::from_utf8(output.stdout).unwrap().trim_end(),
             expected
         );
+        let output = dir
+            .command("affected-tests", "suite.isk")
+            .args(args)
+            .arg("--json")
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(0), "{output:?}");
+        assert!(output.stderr.is_empty());
+        let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        let mut expected_json = expected_json;
+        expected_json["schema_version"] = 1.into();
+        expected_json["ok"] = true.into();
+        assert_eq!(json, expected_json);
+    }
+
+    let misplaced = dir
+        .command("affected-tests", "suite.isk")
+        .args(["helper", "--json", "test_direct"])
+        .output()
+        .unwrap();
+    assert_eq!(misplaced.status.code(), Some(1), "{misplaced:?}");
+    assert!(misplaced.stdout.is_empty());
+    assert!(misplaced.stderr.starts_with(b"Usage:"));
+
+    fs::write(dir.0.join("suite.isk"), "fn main() { missing() }").unwrap();
+    let invalid = dir
+        .command("affected-tests", "suite.isk")
+        .args(["helper", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(invalid.status.code(), Some(1), "{invalid:?}");
+    assert!(invalid.stdout.is_empty());
+    let json: serde_json::Value = serde_json::from_slice(&invalid.stderr).unwrap();
+    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["ok"], false);
+    assert_eq!(json["error"]["code"], "ISK-NAME-002");
+    assert_eq!(json["error"]["path"], "suite.isk");
+    assert_eq!(json["error"]["line"], 1);
+    assert_eq!(json["error"]["column"], 13);
+    assert!(!dir.0.join(".isk-build").exists());
+}
+
+#[test]
+fn cli_runs_explicit_tests_and_reports_results_by_symbol() {
+    let dir = TestDir::new("test-roots");
+    let source = concat!(
+        "fn fails() -> bool { false }\n",
+        "fn crashes() -> bool { 1 / 0 == 0 }\n",
+        "fn passes() -> bool { let logged = print(42); true }\n",
+        "fn main() { print(99) }\n",
+    );
+    fs::write(dir.0.join("suite.isk"), source).unwrap();
+    let run = |roots: &[&str]| {
+        dir.command("test", "suite.isk")
+            .args(roots)
+            .output()
+            .unwrap()
+    };
+    let all = run(&["passes", "crashes", "fails", "passes"]);
+    assert_eq!(all.status.code(), Some(1), "{all:?}");
+    assert!(all.stderr.is_empty());
+    let report: serde_json::Value = serde_json::from_slice(&all.stdout).unwrap();
+    assert_eq!(report["schema_version"], 1);
+    assert_eq!(report["ok"], false);
+    let tests = report["tests"].as_array().unwrap();
+    assert_eq!(tests.len(), 3);
+    for (id, (name, status)) in [
+        ("fails", "returned_false"),
+        ("crashes", "runtime_error"),
+        ("passes", "passed"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let start = source.find(name).unwrap();
+        assert_eq!(
+            tests[id]["symbol"],
+            serde_json::json!({
+                "id": id, "name": name, "declaration": {"start": start, "end": start + name.len()}
+            })
+        );
+        assert_eq!(tests[id]["status"], status);
+    }
+    assert!(tests[1]["stderr"]
+        .as_str()
+        .unwrap()
+        .contains("ISK division by zero"));
+    assert_eq!(tests[2]["stdout"].as_str().unwrap().trim_end(), "42");
+
+    let passed = run(&["passes"]);
+    assert_eq!(passed.status.code(), Some(0), "{passed:?}");
+    let report: serde_json::Value = serde_json::from_slice(&passed.stdout).unwrap();
+    assert_eq!(report["ok"], true);
+    assert_eq!(report["tests"].as_array().unwrap().len(), 1);
+
+    for (roots, diagnostic) in [
+        (&["passes", "missing"][..], "unknown function `missing`"),
+        (&["passes", "main"][..], "must have signature"),
+    ] {
+        let invalid = run(roots);
+        assert_eq!(invalid.status.code(), Some(1), "{invalid:?}");
+        assert!(invalid.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&invalid.stderr).contains(diagnostic));
     }
     assert!(!dir.0.join(".isk-build").exists());
 }
@@ -526,6 +720,53 @@ fn controller_showcase_runs_guarded_transitions_and_latches_faults() {
 }
 
 #[test]
+fn cli_respects_arithmetic_precedence_and_grouping() {
+    let dir = TestDir::new("arithmetic-precedence");
+    let source = "arithmetic-precedence.isk";
+    fs::write(
+        dir.0.join(source),
+        "fn main() {
+    let ungrouped = print(2 + 3 * 4);
+    print((2 + 3) * 4)
+}
+",
+    )
+    .unwrap();
+
+    let run = dir.isk("run", source);
+    assert_eq!(run.status.code(), Some(0), "{run:?}");
+    let stdout = String::from_utf8(run.stdout).unwrap();
+    assert_eq!(stdout.lines().collect::<Vec<_>>(), ["14", "20"]);
+}
+
+#[test]
+fn builds_keep_same_named_programs_independently_runnable() {
+    let dir = TestDir::new("same-named-programs");
+    let mut binaries = Vec::new();
+    for (project, value) in [("first", 17), ("second", 42)] {
+        fs::create_dir(dir.0.join(project)).unwrap();
+        let source = Path::new(project).join("main.isk");
+        fs::write(
+            dir.0.join(&source),
+            format!("fn main() {{ print({value}) }}"),
+        )
+        .unwrap();
+        let build = dir.isk("build", source);
+        assert!(build.status.success(), "{build:?}");
+        let path = String::from_utf8(build.stdout).unwrap();
+        binaries.push((dir.0.join(path.trim_end()), value));
+    }
+    for (binary, expected) in binaries {
+        let run = Command::new(binary).output().unwrap();
+        assert!(run.status.success(), "{run:?}");
+        assert_eq!(
+            String::from_utf8(run.stdout).unwrap().trim(),
+            expected.to_string()
+        );
+    }
+}
+
+#[test]
 fn cli_builds_literal_arithmetic_and_preserves_u64_values() {
     let dir = TestDir::new("literal-arithmetic");
     fs::write(
@@ -546,8 +787,8 @@ fn cli_builds_literal_arithmetic_and_preserves_u64_values() {
         String::from_utf8_lossy(&build.stderr)
     );
     let binary = PathBuf::from(String::from_utf8(build.stdout).unwrap().trim());
-    assert_eq!(binary.parent(), Some(Path::new(".isk-build")));
-    assert!(dir.0.join(".isk-build/literal-arithmetic.rs").is_file());
+    assert!(binary.starts_with(".isk-build"));
+    assert!(dir.0.join(binary.with_extension("rs")).is_file());
 
     let program = Command::new(dir.0.join(binary))
         .current_dir(&dir.0)
@@ -577,6 +818,7 @@ fn cli_rejects_invalid_programs_without_build_artifacts() {
         ),
         ("parse-error.isk", "3:1: ISK-PARSE-004: expected `;`"),
         ("type-error.isk", "2:5: ISK-TYPE-002: binding annotation"),
+        ("duplicate-function.isk", "2:1: ISK-SEMA-001:"),
     ] {
         let source = fixtures.join(fixture);
         for command in ["check", "build", "run"] {
@@ -635,6 +877,7 @@ fn cli_reports_runtime_arithmetic_failures() {
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
     for (fixture, diagnostic) in [
         ("integer-overflow.isk", "ISK integer overflow"),
+        ("subtraction-underflow.isk", "ISK integer overflow"),
         ("divide-by-zero.isk", "ISK division by zero"),
     ] {
         let source = fixtures.join(fixture);

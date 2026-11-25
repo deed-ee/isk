@@ -7,10 +7,17 @@ use std::process::{self, Command};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
-mod project;
-
 fn usage() -> &'static str {
-    "Usage: isk new <directory>\n       isk check <file.isk|project-directory> [--diagnostics=tsv|--json]\n       isk <build|run> <file.isk|project-directory>\n       isk inspect <file.isk|project-directory> <function> [--callers|--json]\n       isk rename <file.isk> <old-name> <new-name> [--plan | --apply <snapshot>]\n       isk affected-tests <file.isk> <changed-function> [<test-root> ...]"
+    concat!(
+        "Usage: isk new <directory>\n",
+        "       isk check <file.isk|project-dir> [--diagnostics=tsv|--json]\n",
+        "       isk build <file.isk|project-dir>\n",
+        "       isk run <file.isk|project-dir>\n",
+        "       isk inspect <file.isk|project-dir> <function> [--callers|--json]\n",
+        "       isk rename <file.isk> <old-name> <new-name> [--plan | --apply <snapshot>]\n",
+        "       isk affected-tests <file.isk> <changed-function> [<test-root> ...] [--json]\n",
+        "       isk test <file.isk> <test-root> ..."
+    )
 }
 
 fn new_project(root: &Path) -> Result<(), String> {
@@ -126,7 +133,10 @@ fn inspect_json(path: &Path, source: &str, name: &str) -> Result<(), String> {
 
 fn build_file(path: &Path) -> Result<PathBuf, String> {
     let rust = compile_file(path)?;
-    let output_dir = PathBuf::from(".isk-build");
+    let input = fs::canonicalize(path)
+        .map_err(|error| format!("cannot resolve {}: {error}", path.display()))?;
+    let key = Sha256::digest(input.as_os_str().as_encoded_bytes());
+    let output_dir = PathBuf::from(".isk-build").join(format!("{key:x}"));
     fs::create_dir_all(&output_dir).map_err(|error| error.to_string())?;
     let stem = path
         .file_stem()
@@ -138,19 +148,70 @@ fn build_file(path: &Path) -> Result<PathBuf, String> {
     } else {
         stem.to_owned()
     });
-    fs::write(&rust_path, rust).map_err(|error| error.to_string())?;
+    compile_native(&rust, &rust_path, &binary_path)?;
+    Ok(binary_path)
+}
+
+fn compile_native(rust: &str, rust_path: &Path, binary_path: &Path) -> Result<(), String> {
+    fs::write(rust_path, rust).map_err(|error| error.to_string())?;
     let result = Command::new("rustc")
         .arg("--edition=2021")
         .args(["--crate-name", "isk_program"])
-        .arg(&rust_path)
+        .arg(rust_path)
         .arg("-o")
-        .arg(&binary_path)
+        .arg(binary_path)
         .output()
         .map_err(|error| format!("cannot run rustc: {error}"))?;
     if !result.status.success() {
         return Err(String::from_utf8_lossy(&result.stderr).into_owned());
     }
-    Ok(binary_path)
+    Ok(())
+}
+
+fn run_tests(path: &Path, roots: &[&str]) -> Result<bool, String> {
+    let source = read_source(path)?;
+    let program =
+        isk::CheckedProgram::validate(&source).map_err(|error| invalid_source_json(path, error))?;
+    let (tests, rust) = isk::compile_test_harness(&program, roots)
+        .map_err(|error| format!("{}: {error}", path.display()))?;
+    let temp =
+        tempfile::tempdir().map_err(|error| format!("cannot stage test harness: {error}"))?;
+    let binary = temp.path().join(if cfg!(windows) {
+        "isk-tests.exe"
+    } else {
+        "isk-tests"
+    });
+    compile_native(&rust, &temp.path().join("tests.rs"), &binary)?;
+
+    let mut results = Vec::with_capacity(tests.len());
+    let mut passed = true;
+    for (index, test) in tests.iter().enumerate() {
+        let output = Command::new(&binary)
+            .arg(index.to_string())
+            .output()
+            .map_err(|error| format!("cannot run test `{}`: {error}", test.name))?;
+        let status = match output.status.code() {
+            Some(0) => "passed",
+            Some(2) => "returned_false",
+            _ => "runtime_error",
+        };
+        passed &= status == "passed";
+        results.push(json!({
+            "symbol": {
+                "id": test.id, "name": test.name,
+                "declaration": {"start": test.declaration.start, "end": test.declaration.end}
+            },
+            "status": status,
+            "exit_code": output.status.code(),
+            "stdout": String::from_utf8_lossy(&output.stdout),
+            "stderr": String::from_utf8_lossy(&output.stderr),
+        }));
+    }
+    println!(
+        "{}",
+        json!({"schema_version": 1, "ok": passed, "tests": results})
+    );
+    Ok(passed)
 }
 
 enum RenameMode {
@@ -237,37 +298,76 @@ fn execute() -> Result<(), String> {
     let mut args = env::args_os().skip(1);
     let command = args.next().and_then(|arg| arg.into_string().ok());
     let path = args.next().map(PathBuf::from).ok_or_else(usage)?;
+    let path = if matches!(
+        command.as_deref(),
+        Some("check" | "build" | "run" | "inspect")
+    ) && path.is_dir()
+    {
+        isk::project::application_entry(&path)?
+    } else {
+        path
+    };
     if command.as_deref() == Some("new") {
         if args.next().is_some() {
             return Err(usage().to_owned());
         }
         return new_project(&path);
     }
-    let path = match command.as_deref() {
-        Some("check" | "build" | "run" | "inspect") => project::entry_path(path)?,
-        _ => path,
-    };
+    if command.as_deref() == Some("test") {
+        let roots = args
+            .map(|name| name.into_string())
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| usage())?;
+        if roots.is_empty() {
+            return Err(usage().to_owned());
+        }
+        let roots: Vec<_> = roots.iter().map(String::as_str).collect();
+        if !run_tests(&path, &roots)? {
+            process::exit(1);
+        }
+        return Ok(());
+    }
     if command.as_deref() == Some("affected-tests") {
         let changed = args
             .next()
             .and_then(|name| name.into_string().ok())
             .ok_or_else(usage)?;
-        let roots = args
+        let mut roots = args
             .map(|name| name.into_string())
             .collect::<Result<Vec<_>, _>>()
             .map_err(|_| usage())?;
+        let json_output = roots.last().is_some_and(|arg| arg == "--json");
+        if json_output {
+            roots.pop();
+        }
+        if changed == "--json" || roots.iter().any(|root| root == "--json") {
+            return Err(usage().to_owned());
+        }
         let roots: Vec<_> = roots.iter().map(String::as_str).collect();
         let source = read_source(&path)?;
-        let program = isk::CheckedProgram::new(&source)
-            .map_err(|error| format!("{}: {error}", path.display()))?;
-        match program.affected_tests(&changed, &roots) {
-            isk::TestSelection::Focused(roots) => {
+        let program = isk::CheckedProgram::validate(&source).map_err(|error| {
+            if json_output {
+                invalid_source_json(&path, error)
+            } else {
+                format!("{}: {error}", path.display())
+            }
+        })?;
+        match (program.affected_tests(&changed, &roots), json_output) {
+            (isk::TestSelection::Focused(roots), true) => println!(
+                "{}",
+                json!({"schema_version": 1, "ok": true, "scope": "focused", "tests": roots})
+            ),
+            (isk::TestSelection::Full(reason), true) => println!(
+                "{}",
+                json!({"schema_version": 1, "ok": true, "scope": "full", "reason": reason.code()})
+            ),
+            (isk::TestSelection::Focused(roots), false) => {
                 println!("scope\tfocused");
                 for root in roots {
                     println!("test\t{root}");
                 }
             }
-            isk::TestSelection::Full(reason) => println!("scope\tfull\t{}", reason.code()),
+            (isk::TestSelection::Full(reason), false) => println!("scope\tfull\t{}", reason.code()),
         }
         return Ok(());
     }
